@@ -15,7 +15,7 @@ services.AddContextR(builder =>
 ```
 
 ```csharp
-var snapshot = accessor.Capture();
+var snapshot = accessor.CreateSnapshot();
 
 using (snapshot.BeginScope())
 {
