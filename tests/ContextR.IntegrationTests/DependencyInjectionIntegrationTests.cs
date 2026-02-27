@@ -75,6 +75,84 @@ public sealed class DependencyInjectionIntegrationTests
         Assert.Equal("user-required", accessor.GetRequiredContext<UserContext>().UserId);
     }
 
+    [Fact]
+    public void AddContextR_WithDomainPolicy_AccessorAndWriterAreSameInstance()
+    {
+        using var provider = CreateDomainProvider();
+
+        var accessor = provider.GetRequiredService<IContextAccessor>();
+        var writer = provider.GetRequiredService<IContextWriter>();
+
+        Assert.IsAssignableFrom<IContextAccessor>(writer);
+        Assert.Same(accessor, writer);
+    }
+
+    [Fact]
+    public void AddContextR_WithDomainPolicy_ScopedSnapshot_CapturesDomainValues()
+    {
+        using var provider = CreateDomainProvider();
+        var writer = provider.GetRequiredService<IContextWriter>();
+
+        writer.SetContext(new UserContext("default-user"));
+        writer.SetContext("web-api", new UserContext("web-user"));
+
+        using var scope = provider.CreateScope();
+        var snapshot = scope.ServiceProvider.GetRequiredService<IContextSnapshot>();
+
+        Assert.Equal("default-user", snapshot.GetContext<UserContext>()?.UserId);
+        Assert.Equal("web-user", snapshot.GetContext<UserContext>("web-api")?.UserId);
+    }
+
+    [Fact]
+    public void AddContextR_WithDomainPolicy_DefaultDomainSelector_PropagatedToScopedSnapshot()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.AddDomain("web-api", domain => domain.Add<UserContext>());
+            builder.AddDomainPolicy(p => p.DefaultDomainSelector = _ => "web-api");
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var writer = provider.GetRequiredService<IContextWriter>();
+
+        writer.SetContext(new UserContext("via-default"));
+
+        using var scope = provider.CreateScope();
+        var snapshot = scope.ServiceProvider.GetRequiredService<IContextSnapshot>();
+
+        Assert.Equal("via-default", snapshot.GetContext<UserContext>()?.UserId);
+        Assert.Equal("via-default", snapshot.GetContext<UserContext>("web-api")?.UserId);
+    }
+
+    [Fact]
+    public void AddContextR_CalledTwice_DoesNotOverrideExistingRegistrations()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder => builder.Add<UserContext>());
+        services.AddContextR(builder => builder.Add<UserContext>());
+
+        using var provider = services.BuildServiceProvider();
+        var accessor = provider.GetRequiredService<IContextAccessor>();
+        var writer = provider.GetRequiredService<IContextWriter>();
+
+        writer.SetContext(new UserContext("test"));
+        Assert.Equal("test", accessor.GetContext<UserContext>()?.UserId);
+    }
+
+    [Fact]
+    public void GetRequiredContext_Domain_ThrowsWhenMissing_AndReturnsWhenPresent()
+    {
+        using var provider = CreateDomainProvider();
+        var accessor = provider.GetRequiredService<IContextAccessor>();
+        var writer = provider.GetRequiredService<IContextWriter>();
+
+        Assert.Throws<InvalidOperationException>(() => accessor.GetRequiredContext<UserContext>("web-api"));
+
+        writer.SetContext("web-api", new UserContext("web-required"));
+        Assert.Equal("web-required", accessor.GetRequiredContext<UserContext>("web-api").UserId);
+    }
+
     private static ServiceProvider CreateProvider()
     {
         var services = new ServiceCollection();
@@ -82,6 +160,22 @@ public sealed class DependencyInjectionIntegrationTests
         {
             builder.Add<UserContext>();
             builder.Add<TenantContext>();
+        });
+        return services.BuildServiceProvider();
+    }
+
+    private static ServiceProvider CreateDomainProvider()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<UserContext>();
+            builder.Add<TenantContext>();
+            builder.AddDomain("web-api", domain =>
+            {
+                domain.Add<UserContext>();
+                domain.Add<TenantContext>();
+            });
         });
         return services.BuildServiceProvider();
     }

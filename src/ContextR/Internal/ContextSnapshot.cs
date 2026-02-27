@@ -2,18 +2,27 @@ namespace ContextR.Internal;
 
 internal sealed class ContextSnapshot : IContextSnapshot
 {
-    internal static readonly IContextSnapshot Empty = new ContextSnapshot([]);
+    private readonly Dictionary<ContextKey, object> _values;
+    private readonly string? _defaultDomain;
 
-    private readonly Dictionary<Type, object> _values;
-
-    public ContextSnapshot(Dictionary<Type, object> values)
+    public ContextSnapshot(Dictionary<ContextKey, object> values, string? defaultDomain)
     {
-        _values = new Dictionary<Type, object>(values);
+        _values = new Dictionary<ContextKey, object>(values);
+        _defaultDomain = defaultDomain;
     }
 
     public TContext? GetContext<TContext>() where TContext : class
     {
-        return _values.TryGetValue(typeof(TContext), out var value) ? value as TContext : null;
+        return _values.TryGetValue(new ContextKey(_defaultDomain, typeof(TContext)), out var value)
+            ? value as TContext
+            : null;
+    }
+
+    public TContext? GetContext<TContext>(string domain) where TContext : class
+    {
+        return _values.TryGetValue(new ContextKey(domain, typeof(TContext)), out var value)
+            ? value as TContext
+            : null;
     }
 
     public IDisposable BeginScope()

@@ -4,22 +4,21 @@ namespace ContextR.Internal;
 
 internal sealed class ContextStorage
 {
-    private readonly ConcurrentDictionary<Type, AsyncLocal<ContextHolder?>> _storage = new();
+    private readonly ConcurrentDictionary<ContextKey, AsyncLocal<ContextHolder?>> _storage = new();
 
-    public TContext? Get<TContext>() where TContext : class
+    public TContext? Get<TContext>(string? domain) where TContext : class
     {
-        return GetSlot(typeof(TContext)).Value?.Context as TContext;
+        return GetSlot(new ContextKey(domain, typeof(TContext))).Value?.Context as TContext;
     }
 
-    public void Set<TContext>(TContext? context) where TContext : class
+    public void Set<TContext>(string? domain, TContext? context) where TContext : class
     {
-        var slot = GetSlot(typeof(TContext));
+        var key = new ContextKey(domain, typeof(TContext));
+        var slot = GetSlot(key);
         var holder = slot.Value;
 
         if (holder is not null)
         {
-            // Clearing the shared holder prevents stale values from leaking across flows
-            // that still reference the same holder instance.
             holder.Context = null;
         }
 
@@ -29,9 +28,9 @@ internal sealed class ContextStorage
         }
     }
 
-    public Dictionary<Type, object> CaptureAll()
+    public Dictionary<ContextKey, object> CaptureAll()
     {
-        var result = new Dictionary<Type, object>();
+        var result = new Dictionary<ContextKey, object>();
 
         foreach (var entry in _storage)
         {
@@ -45,14 +44,14 @@ internal sealed class ContextStorage
         return result;
     }
 
-    public void SetRaw(Type contextType, object? context)
+    public void SetRaw(ContextKey key, object? context)
     {
-        var slot = GetSlot(contextType);
+        var slot = GetSlot(key);
         slot.Value = context is null ? null : new ContextHolder { Context = context };
     }
 
-    private AsyncLocal<ContextHolder?> GetSlot(Type contextType)
+    private AsyncLocal<ContextHolder?> GetSlot(ContextKey key)
     {
-        return _storage.GetOrAdd(contextType, static _ => new AsyncLocal<ContextHolder?>());
+        return _storage.GetOrAdd(key, static _ => new AsyncLocal<ContextHolder?>());
     }
 }

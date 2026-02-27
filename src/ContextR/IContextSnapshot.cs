@@ -13,6 +13,14 @@ public interface IContextSnapshot
     TContext? GetContext<TContext>() where TContext : class;
 
     /// <summary>
+    /// Gets a captured context value of type <typeparamref name="TContext"/> for the specified domain, if present.
+    /// </summary>
+    /// <typeparam name="TContext">The context type.</typeparam>
+    /// <param name="domain">The domain to read from.</param>
+    /// <returns>The captured context value, or <see langword="null"/> when not present.</returns>
+    TContext? GetContext<TContext>(string domain) where TContext : class;
+
+    /// <summary>
     /// Activates this snapshot for the current execution flow and returns a disposable boundary
     /// that restores the previous ambient state when disposed.
     /// </summary>

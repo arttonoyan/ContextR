@@ -2,19 +2,19 @@ namespace ContextR.Internal;
 
 internal sealed class ContextScope : IDisposable
 {
-    private readonly Dictionary<Type, object?> _previousValues;
-    private readonly IReadOnlyCollection<Type> _appliedTypes;
+    private readonly Dictionary<ContextKey, object?> _previousValues;
+    private readonly IReadOnlyCollection<ContextKey> _appliedKeys;
     private bool _disposed;
 
-    public ContextScope(IReadOnlyDictionary<Type, object> nextValues)
+    public ContextScope(IReadOnlyDictionary<ContextKey, object> nextValues)
     {
         var current = MutableContextAccessor.CaptureCurrentValues();
-        _appliedTypes = nextValues.Keys.ToList();
-        _previousValues = new Dictionary<Type, object?>(_appliedTypes.Count);
+        _appliedKeys = nextValues.Keys.ToList();
+        _previousValues = new Dictionary<ContextKey, object?>(_appliedKeys.Count);
 
-        foreach (var contextType in _appliedTypes)
+        foreach (var key in _appliedKeys)
         {
-            _previousValues[contextType] = current.TryGetValue(contextType, out var previous)
+            _previousValues[key] = current.TryGetValue(key, out var previous)
                 ? previous
                 : null;
         }
@@ -36,10 +36,10 @@ internal sealed class ContextScope : IDisposable
         }
 
         _disposed = true;
-        foreach (var contextType in _appliedTypes)
+        foreach (var key in _appliedKeys)
         {
-            _previousValues.TryGetValue(contextType, out var previous);
-            MutableContextAccessor.SetRawValue(contextType, previous);
+            _previousValues.TryGetValue(key, out var previous);
+            MutableContextAccessor.SetRawValue(key, previous);
         }
     }
 }

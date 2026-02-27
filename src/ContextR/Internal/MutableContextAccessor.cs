@@ -4,22 +4,41 @@ internal sealed class MutableContextAccessor : IContextAccessor, IContextWriter
 {
     private static readonly ContextStorage Storage = new();
 
+    private readonly string? _defaultDomain;
+
+    public MutableContextAccessor(ContextDomainPolicy domainPolicy, IServiceProvider serviceProvider)
+    {
+        _defaultDomain = domainPolicy.DefaultDomainSelector?.Invoke(serviceProvider);
+    }
+
+    internal string? DefaultDomain => _defaultDomain;
+
     public TContext? GetContext<TContext>() where TContext : class
     {
-        return Storage.Get<TContext>();
+        return Storage.Get<TContext>(_defaultDomain);
+    }
+
+    public TContext? GetContext<TContext>(string domain) where TContext : class
+    {
+        return Storage.Get<TContext>(domain);
     }
 
     public void SetContext<TContext>(TContext? context) where TContext : class
     {
-        Storage.Set(context);
+        Storage.Set(_defaultDomain, context);
     }
 
-    internal static Dictionary<Type, object> CaptureCurrentValues()
+    public void SetContext<TContext>(string domain, TContext? context) where TContext : class
+    {
+        Storage.Set(domain, context);
+    }
+
+    internal static Dictionary<ContextKey, object> CaptureCurrentValues()
     {
         return Storage.CaptureAll();
     }
 
-    internal static void ApplyValues(IReadOnlyDictionary<Type, object> values)
+    internal static void ApplyValues(IReadOnlyDictionary<ContextKey, object> values)
     {
         foreach (var entry in values)
         {
@@ -27,8 +46,8 @@ internal sealed class MutableContextAccessor : IContextAccessor, IContextWriter
         }
     }
 
-    internal static void SetRawValue(Type contextType, object? context)
+    internal static void SetRawValue(ContextKey key, object? context)
     {
-        Storage.SetRaw(contextType, context);
+        Storage.SetRaw(key, context);
     }
 }

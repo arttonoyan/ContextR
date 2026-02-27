@@ -80,6 +80,40 @@ public sealed class ExtensionGuardClauseTests
         Assert.Equal("u1", snapshot.GetRequiredContext<UserContext>().UserId);
     }
 
+    [Fact]
+    public void CreateSnapshotWithDomain_Throws_WhenAccessorIsNull()
+    {
+        IContextAccessor? accessor = null;
+
+        Assert.Throws<ArgumentNullException>(() => accessor!.CreateSnapshot("domain", new UserContext("u1")));
+    }
+
+    [Fact]
+    public void CreateSnapshotWithDomain_Throws_WhenContextIsNull()
+    {
+        using var provider = CreateProvider();
+        var accessor = provider.GetRequiredService<IContextAccessor>();
+
+        Assert.Throws<ArgumentNullException>(() =>
+            accessor.CreateSnapshot<UserContext>("domain", null!));
+    }
+
+    [Fact]
+    public void GetRequiredContextAccessor_Domain_Throws_WhenAccessorIsNull()
+    {
+        IContextAccessor? accessor = null;
+
+        Assert.Throws<ArgumentNullException>(() => accessor!.GetRequiredContext<UserContext>("domain"));
+    }
+
+    [Fact]
+    public void GetRequiredContextSnapshot_Domain_Throws_WhenSnapshotIsNull()
+    {
+        IContextSnapshot? snapshot = null;
+
+        Assert.Throws<ArgumentNullException>(() => snapshot!.GetRequiredContext<UserContext>("domain"));
+    }
+
     private static ServiceProvider CreateProvider()
     {
         var services = new ServiceCollection();

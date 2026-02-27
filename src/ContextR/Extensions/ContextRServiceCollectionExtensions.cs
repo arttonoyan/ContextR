@@ -27,11 +27,17 @@ public static class ContextRServiceCollectionExtensions
 
         var builder = new ContextBuilder();
         configure(builder);
+        builder.Validate();
 
+        services.TryAddSingleton(builder.DomainPolicy);
         services.TryAddSingleton<MutableContextAccessor>();
         services.TryAddSingleton<IContextAccessor>(static sp => sp.GetRequiredService<MutableContextAccessor>());
         services.TryAddSingleton<IContextWriter>(static sp => sp.GetRequiredService<MutableContextAccessor>());
-        services.TryAddScoped<IContextSnapshot>(static _ => new ContextSnapshot(MutableContextAccessor.CaptureCurrentValues()));
+        services.TryAddScoped<IContextSnapshot>(static sp =>
+        {
+            var accessor = sp.GetRequiredService<MutableContextAccessor>();
+            return new ContextSnapshot(MutableContextAccessor.CaptureCurrentValues(), accessor.DefaultDomain);
+        });
 
         return services;
     }

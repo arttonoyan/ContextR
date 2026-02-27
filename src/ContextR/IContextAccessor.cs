@@ -11,4 +11,12 @@ public interface IContextAccessor
     /// <typeparam name="TContext">The context type.</typeparam>
     /// <returns>The current context value, or <see langword="null"/> when not set.</returns>
     TContext? GetContext<TContext>() where TContext : class;
+
+    /// <summary>
+    /// Gets the ambient context value of type <typeparamref name="TContext"/> for the specified domain, if present.
+    /// </summary>
+    /// <typeparam name="TContext">The context type.</typeparam>
+    /// <param name="domain">The domain to read from.</param>
+    /// <returns>The current context value, or <see langword="null"/> when not set.</returns>
+    TContext? GetContext<TContext>(string domain) where TContext : class;
 }
