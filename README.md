@@ -383,9 +383,138 @@ ContextR validates configuration at startup:
 | `GetRequiredContext<T>()` | Returns the captured value or throws `InvalidOperationException`. |
 | `GetRequiredContext<T>(string domain)` | Returns the domain-specific captured value or throws. |
 
+## HTTP context propagation
+
+ContextR provides transport packages that propagate context across HTTP boundaries. Everything is configured within the unified `AddContextR` fluent API -- no separate registration calls needed.
+
+### Install
+
+```
+dotnet add package ContextR
+dotnet add package ContextR.Propagation
+dotnet add package ContextR.Http
+dotnet add package ContextR.AspNetCore
+```
+
+### Full example -- ASP.NET Core API with outgoing HTTP calls
+
+```csharp
+builder.Services.AddContextR(ctx =>
+{
+    ctx.Add<CorrelationContext>(reg => reg
+        .MapProperty(c => c.TraceId, "X-Trace-Id")
+        .MapProperty(c => c.SpanId, "X-Span-Id")
+        .UseAspNetCore()
+        .UseGlobalHttpPropagation());
+
+    ctx.Add<TenantContext>(reg => reg
+        .MapProperty(c => c.TenantId, "X-Tenant-Id")
+        .UseAspNetCore()
+        .UseGlobalHttpPropagation());
+});
+```
+
+This single configuration achieves:
+
+1. **Incoming requests** -- middleware automatically extracts `X-Trace-Id`, `X-Span-Id`, and `X-Tenant-Id` from HTTP headers into the ambient context
+2. **Outgoing `HttpClient` calls** -- a `DelegatingHandler` automatically injects those same headers into every outgoing request created by `IHttpClientFactory`
+
+### Property mapping
+
+`MapProperty` maps context class properties to transport key names (HTTP headers, gRPC metadata keys, etc.). The framework auto-generates an `IContextPropagator<T>` from the mappings:
+
+```csharp
+ctx.Add<CorrelationContext>(reg => reg
+    .MapProperty(c => c.TraceId, "X-Trace-Id")    // string
+    .MapProperty(c => c.RequestId, "X-Request-Id") // Guid (IParsable)
+    .MapProperty(c => c.RetryCount, "X-Retry"));   // int (IParsable)
+```
+
+Supported property types: `string`, any type implementing `IParsable<T>` (all numeric types, `Guid`, `DateTime`, etc.), and types convertible via `Convert.ChangeType`.
+
+### Custom propagator
+
+For full control, implement `IContextPropagator<T>` directly:
+
+```csharp
+public class CorrelationPropagator : IContextPropagator<CorrelationContext>
+{
+    public void Inject<TCarrier>(CorrelationContext context, TCarrier carrier,
+        Action<TCarrier, string, string> setter)
+    {
+        setter(carrier, "X-Trace-Id", context.TraceId);
+        if (context.SpanId is not null)
+            setter(carrier, "X-Span-Id", context.SpanId);
+    }
+
+    public CorrelationContext? Extract<TCarrier>(TCarrier carrier,
+        Func<TCarrier, string, string?> getter)
+    {
+        var traceId = getter(carrier, "X-Trace-Id");
+        if (traceId is null) return null;
+
+        return new CorrelationContext
+        {
+            TraceId = traceId,
+            SpanId = getter(carrier, "X-Span-Id")
+        };
+    }
+}
+```
+
+Register it with `UsePropagator`:
+
+```csharp
+ctx.Add<CorrelationContext>(reg => reg
+    .UsePropagator<CorrelationPropagator>()
+    .UseAspNetCore()
+    .UseGlobalHttpPropagation());
+```
+
+### Per-client HTTP propagation
+
+Instead of propagating context to all `HttpClient` instances, you can target specific named clients:
+
+```csharp
+// Register ContextR with middleware but no global propagation
+builder.Services.AddContextR(ctx =>
+{
+    ctx.Add<CorrelationContext>(reg => reg
+        .MapProperty(c => c.TraceId, "X-Trace-Id")
+        .UseAspNetCore());
+});
+
+// Add propagation only to specific clients
+builder.Services.AddHttpClient("payment-api")
+    .AddContextRHandler<CorrelationContext>();
+
+builder.Services.AddHttpClient("logging-api"); // no propagation
+```
+
+### Domain-scoped HTTP propagation
+
+When the same context type is registered under multiple domains with different propagation needs, the transport extensions are domain-aware:
+
+```csharp
+builder.Services.AddContextR(ctx =>
+{
+    ctx.Add<CorrelationContext>()
+       .AddDomain("web-api", d => d.Add<CorrelationContext>(reg => reg
+           .MapProperty(c => c.TraceId, "X-Trace-Id")
+           .UseAspNetCore()
+           .UseGlobalHttpPropagation()))
+       .AddDomain("internal", d => d.Add<CorrelationContext>(reg => reg
+           .MapProperty(c => c.TraceId, "X-Internal-Trace")
+           .UseAspNetCore()
+           .UseGlobalHttpPropagation()));
+});
+```
+
+Each domain's middleware and handler operate on their own isolated context slot.
+
 ## What ContextR is NOT
 
-- **Not tied to HTTP, gRPC, or any transport.** It is a pure context-propagation library. Integration with specific transports is provided by dedicated packages (see [Packages](#packages) below).
+- **Not tied to HTTP, gRPC, or any transport.** The core library is a pure context-propagation library. Integration with specific transports is provided by dedicated packages.
 - **Not a replacement for `Activity` / distributed tracing.** `Activity` is for trace IDs and spans. ContextR is for application-level context values.
 - **Not a DI container.** It stores ambient values in `AsyncLocal`, not in the service provider.
 
@@ -393,8 +522,10 @@ ContextR validates configuration at startup:
 
 | Package | Description | Status |
 |---|---|---|
-| `ContextR` | Core library -- storage, snapshots, scopes, domains | Available |
-| `ContextR.AspNetCore` | ASP.NET Core middleware for extracting context from HTTP headers | Planned |
+| `ContextR` | Core library -- storage, snapshots, scopes, domains, `IContextPropagator<T>` interface | Available |
+| `ContextR.Propagation` | `MapProperty` fluent API for auto-generating propagators from property mappings | Available |
+| `ContextR.Http` | `DelegatingHandler` for propagating context to outgoing `HttpClient` requests | Available |
+| `ContextR.AspNetCore` | ASP.NET Core middleware for extracting context from incoming HTTP request headers | Available |
 | `ContextR.Grpc` | gRPC client/server interceptors | Planned |
 | `ContextR.Kafka` | Kafka producer/consumer context propagation | Planned |
 
@@ -402,4 +533,7 @@ ContextR validates configuration at startup:
 
 | Document | Description |
 |---|---|
-| [Architecture and Design Decisions](docs/ARCHITECTURE.md) | Internal architecture, storage design, Set vs SetRaw, domain-scoping design, DI registration rationale, FAQ |
+| [Architecture and Design Decisions](docs/ARCHITECTURE.md) | Internal architecture, storage design, Set vs SetRaw, domain-scoping design, propagator design, DI registration rationale, FAQ |
+| [ContextR.Propagation](docs/ContextR.Propagation.md) | Property mapping API, `MappingContextPropagator`, custom propagator integration |
+| [ContextR.Http](docs/ContextR.Http.md) | HTTP client propagation, global vs per-client, domain-aware handler |
+| [ContextR.AspNetCore](docs/ContextR.AspNetCore.md) | ASP.NET Core middleware, `IStartupFilter`, domain-aware extraction |

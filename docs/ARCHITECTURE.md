@@ -12,6 +12,7 @@ This document explains the internal architecture of ContextR, the reasoning behi
 - [Domain-scoped context](#domain-scoped-context)
 - [DI registration design](#di-registration-design)
 - [Component overview](#component-overview)
+- [Propagator architecture](#propagator-architecture)
 - [File map](#file-map)
 - [FAQ](#faq)
 
@@ -427,21 +428,99 @@ graph LR
 
 ---
 
+## Propagator architecture
+
+The `IContextPropagator<TContext>` interface is the bridge between ContextR's ambient storage and transport layers (HTTP, gRPC, Kafka, etc.). It lives in the core `ContextR` package because all transport packages depend on it.
+
+### Carrier pattern
+
+The propagator uses a generic carrier pattern inspired by OpenTelemetry's `TextMapPropagator`. Instead of depending on specific transport types (`HttpRequestHeaders`, `Metadata`), the propagator operates on abstract getter/setter delegates:
+
+```csharp
+public interface IContextPropagator<TContext> where TContext : class
+{
+    void Inject<TCarrier>(TContext context, TCarrier carrier, Action<TCarrier, string, string> setter);
+    TContext? Extract<TCarrier>(TCarrier carrier, Func<TCarrier, string, string?> getter);
+}
+```
+
+This means one propagator implementation works with any carrier type. The transport package provides the concrete carrier and delegate:
+
+```
+HTTP injection:  propagator.Inject(context, request.Headers, (h, k, v) => h.TryAddWithoutValidation(k, v))
+HTTP extraction: propagator.Extract(httpContext.Request.Headers, (h, k) => h.TryGetValue(k, out var v) ? v : null)
+gRPC injection:  propagator.Inject(context, metadata, (m, k, v) => m.Add(k, v))
+```
+
+### Registration model
+
+Propagators are registered in DI as singletons. There are two registration paths:
+
+```mermaid
+flowchart TD
+    A["IContextRegistrationBuilder<T>"] --> B{"Registration path"}
+    B -- "MapProperty" --> C["ContextR.Propagation\n registers IPropertyMapping<T>\n+ MappingContextPropagator<T>"]
+    B -- "UsePropagator<P>" --> D["Core ContextR\nregisters P as IContextPropagator<T>"]
+
+    C --> E["IContextPropagator<T>\nin DI container"]
+    D --> E
+
+    E --> F["Transport packages resolve\nIContextPropagator<T> from DI"]
+    F --> G["ContextMiddleware<T>\n(ASP.NET Core)"]
+    F --> H["ContextPropagationHandler<T>\n(HttpClient)"]
+```
+
+Both paths use `TryAdd`, so the first registration wins. This makes `MapProperty` and `UsePropagator` mutually exclusive for a given context type.
+
+### Domain-aware transport flow
+
+When context is registered within a domain, transport extensions capture the domain string at configuration time. The domain flows through the system:
+
+```mermaid
+sequenceDiagram
+    participant Builder as AddContextR builder
+    participant MW as ContextMiddleware
+    participant Storage as AsyncLocal
+    participant Handler as PropagationHandler
+    participant Downstream as Downstream Service
+
+    Note over Builder: domain = "web-api"
+
+    Builder->>MW: UseAspNetCore() captures domain
+    Builder->>Handler: UseGlobalHttpPropagation() captures domain
+
+    Note over MW: Incoming request
+
+    MW->>MW: propagator.Extract(headers)
+    MW->>Storage: writer.SetContext("web-api", context)
+
+    Note over Handler: Outgoing HttpClient call
+
+    Handler->>Storage: accessor.GetContext<T>("web-api")
+    Storage-->>Handler: context
+    Handler->>Downstream: propagator.Inject(context, headers)
+```
+
+---
+
 ## File map
 
-### Public API
+### ContextR (core)
+
+#### Public API
 
 | File | Role |
 |------|------|
 | `IContextAccessor.cs` | Read interface: `GetContext<T>()`, `GetContext<T>(domain)` |
 | `IContextWriter.cs` | Write interface: `SetContext<T>()`, `SetContext<T>(domain, context)` |
 | `IContextSnapshot.cs` | Snapshot interface: `GetContext<T>()`, `GetContext<T>(domain)`, `BeginScope()` |
+| `IContextPropagator.cs` | Transport-agnostic serialization/deserialization interface using carrier pattern |
 | `IContextBuilder.cs` | Builder interface: `Add<T>()`, `AddDomain()`, `AddDomainPolicy()` |
 | `IDomainContextBuilder.cs` | Domain builder interface: `Add<T>()` |
-| `IContextRegistrationBuilder<T>.cs` | Per-type configuration surface (extensibility point) |
+| `IContextRegistrationBuilder<T>.cs` | Per-type configuration surface with `UsePropagator<T>()` and extensibility for transport packages |
 | `ContextDomainPolicy.cs` | Policy class with `DefaultDomainSelector` property |
 
-### Extensions
+#### Extensions
 
 | File | Role |
 |------|------|
@@ -449,7 +528,7 @@ graph LR
 | `ContextSnapshotExtensions.cs` | `CreateSnapshot()` overloads on `IContextAccessor` |
 | `ContextRequiredExtensions.cs` | `GetRequiredContext<T>()` overloads on accessor and snapshot |
 
-### Internal
+#### Internal
 
 | File | Role |
 |------|------|
@@ -461,7 +540,32 @@ graph LR
 | `ContextHolder.cs` | Wrapper class with `object? Context` field. Enables shared-reference clearing by `Set`. |
 | `ContextBuilder.cs` | Internal `IContextBuilder` implementation. Tracks registrations and validates configuration. |
 | `DomainContextBuilder.cs` | Internal `IDomainContextBuilder` implementation. |
-| `ContextRegistrationBuilder<T>.cs` | Internal `IContextRegistrationBuilder<T>` implementation. |
+| `ContextRegistrationBuilder<T>.cs` | Internal `IContextRegistrationBuilder<T>` implementation. Exposes `Services` and `Domain` for transport extensions. |
+
+### ContextR.Propagation
+
+| File | Role |
+|------|------|
+| `ContextRPropagationExtensions.cs` | `MapProperty()` extension method. Registers `IPropertyMapping<T>` and `MappingContextPropagator<T>` into DI. |
+| `Internal/IPropertyMapping.cs` | Internal interface: `Key`, `GetValue`, `TrySetValue` |
+| `Internal/PropertyMapping.cs` | Expression-compiled property accessor. Handles `string`, `IParsable<T>`, and `Convert.ChangeType` parsing. |
+| `Internal/MappingContextPropagator.cs` | `IContextPropagator<T>` that delegates `Inject`/`Extract` to collected `IPropertyMapping<T>` instances. |
+
+### ContextR.Http
+
+| File | Role |
+|------|------|
+| `ContextPropagationHandler.cs` | `DelegatingHandler` that reads context from `IContextAccessor` and injects headers via `IContextPropagator<T>`. Domain-aware. |
+| `Extensions/ContextRHttpRegistrationExtensions.cs` | `UseGlobalHttpPropagation()` -- registers handler via `ConfigureHttpClientDefaults`. Captures domain. |
+| `Extensions/ContextRHttpClientBuilderExtensions.cs` | `AddContextRHandler<T>()` -- per-client handler registration on `IHttpClientBuilder`. |
+
+### ContextR.AspNetCore
+
+| File | Role |
+|------|------|
+| `Internal/ContextMiddleware.cs` | Extracts context from `HttpContext.Request.Headers` via `IContextPropagator<T>.Extract`. Writes to `IContextWriter`. Domain-aware. |
+| `Internal/ContextStartupFilter.cs` | `IStartupFilter` that inserts `ContextMiddleware<T>` at the start of the pipeline. Passes domain to middleware. |
+| `Extensions/ContextRAspNetCoreRegistrationExtensions.cs` | `UseAspNetCore()` -- registers `ContextStartupFilter<T>` with captured domain. |
 
 ---
 
@@ -575,3 +679,49 @@ builder.Services.AddContextR(ctx =>
 ```
 
 Each type gets its own `AsyncLocal` slot and is included in snapshots automatically.
+
+### Q: Why is `IContextPropagator<T>` in the core package and not in `ContextR.Propagation`?
+
+Because every transport package (`ContextR.Http`, `ContextR.AspNetCore`, future `ContextR.Grpc`) depends on this interface to serialize and deserialize context. Placing it in the core package means transport packages only need a dependency on `ContextR`, not on `ContextR.Propagation`.
+
+`ContextR.Propagation` provides one *implementation strategy* (`MapProperty` → `MappingContextPropagator`). Users who implement `IContextPropagator<T>` directly and register it with `UsePropagator<T>()` never need the `ContextR.Propagation` package at all.
+
+### Q: Why does `UseGlobalHttpPropagation()` use `ConfigureHttpClientDefaults`?
+
+`ConfigureHttpClientDefaults` is the .NET 8+ API for applying configuration to all `HttpClient` instances created by `IHttpClientFactory`. It is the cleanest way to add a `DelegatingHandler` globally without requiring each client to be individually configured.
+
+This means all named clients, typed clients, and default clients automatically get context propagation. For selective propagation, use `AddContextRHandler<T>()` on specific `IHttpClientBuilder` instances instead.
+
+### Q: Why is `ContextPropagationHandler<T>` registered as scoped?
+
+`DelegatingHandler` instances are not thread-safe. `IHttpClientFactory` creates a new handler pipeline per logical client scope, and each pipeline needs its own handler instance. Scoped registration ensures each handler gets its own instance within the factory's scope.
+
+### Q: Why does the ASP.NET Core middleware use `IStartupFilter` instead of requiring `app.UseMiddleware()`?
+
+Two reasons. First, `IStartupFilter` ensures the middleware runs before all user-configured middleware, so context is available everywhere. Second, it removes the need for an explicit call in `Program.cs` -- the middleware is registered automatically as part of `AddContextR`.
+
+### Q: Can I use `MapProperty` and `UseAspNetCore` without `UseGlobalHttpPropagation`?
+
+Yes. Each extension is independent. You can extract context from incoming requests without propagating it to outgoing calls, or vice versa. The extensions compose freely:
+
+```csharp
+// Extract only (no outgoing propagation)
+ctx.Add<CorrelationContext>(reg => reg
+    .MapProperty(c => c.TraceId, "X-Trace-Id")
+    .UseAspNetCore());
+
+// Propagate only (no incoming extraction)
+ctx.Add<CorrelationContext>(reg => reg
+    .MapProperty(c => c.TraceId, "X-Trace-Id")
+    .UseGlobalHttpPropagation());
+
+// Both
+ctx.Add<CorrelationContext>(reg => reg
+    .MapProperty(c => c.TraceId, "X-Trace-Id")
+    .UseAspNetCore()
+    .UseGlobalHttpPropagation());
+```
+
+### Q: What happens if context is set but no propagator is registered?
+
+Transport packages resolve `IContextPropagator<T>` from DI. If no propagator is registered, DI resolution will fail with an `InvalidOperationException` at the first request. This is intentional -- it surfaces configuration errors early rather than silently skipping propagation.
