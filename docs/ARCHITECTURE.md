@@ -144,13 +144,15 @@ Builds the snapshot directly from the provided object. Does NOT read from or wri
 
 `BeginScope()` creates a `ContextScope`:
 
-```
-1. Read current AsyncLocal values for each key in the snapshot → save as "previous"
-2. Write snapshot values into AsyncLocal (using SetRaw)
-3. Return IDisposable
+```mermaid
+flowchart TD
+    A["BeginScope() called"] --> B["1. Read current AsyncLocal values\nfor each key in snapshot"]
+    B --> C["2. Save them as 'previous'"]
+    C --> D["3. Write snapshot values\ninto AsyncLocal via SetRaw"]
+    D --> E["4. Return IDisposable"]
 
-On Dispose():
-4. Write "previous" values back into AsyncLocal (using SetRaw)
+    E --> F["Dispose() called"]
+    F --> G["5. Write 'previous' values\nback into AsyncLocal via SetRaw"]
 ```
 
 The key property: **only the current `ExecutionContext` is affected.** If you call `BeginScope()` inside `Task.Run`, the parent's `AsyncLocal` values are not modified. This is because `SetRaw` replaces the `AsyncLocal.Value` (which is per-`ExecutionContext`) rather than mutating a shared holder.
@@ -159,20 +161,31 @@ The key property: **only the current `ExecutionContext` is affected.** If you ca
 
 Scopes are nestable. Each scope saves and restores only the keys it touches:
 
-```
-AsyncLocal has: (null, UserContext) = "root"
+```mermaid
+sequenceDiagram
+    participant AL as AsyncLocal‹UserContext›
 
-using (snapshotA.BeginScope())
-{
-    // AsyncLocal has: (null, UserContext) = "A"   (saved previous = "root")
+    Note over AL: value = "root"
 
-    using (snapshotB.BeginScope())
-    {
-        // AsyncLocal has: (null, UserContext) = "B"   (saved previous = "A")
-    }
-    // AsyncLocal has: (null, UserContext) = "A"   (restored)
-}
-// AsyncLocal has: (null, UserContext) = "root"    (restored)
+    rect rgb(220, 235, 255)
+        Note right of AL: snapshotA.BeginScope()
+        AL->>AL: save previous = "root"
+        Note over AL: value = "A"
+
+        rect rgb(200, 220, 245)
+            Note right of AL: snapshotB.BeginScope()
+            AL->>AL: save previous = "A"
+            Note over AL: value = "B"
+
+            Note right of AL: snapshotB scope Dispose()
+            AL->>AL: restore "A"
+            Note over AL: value = "A"
+        end
+
+        Note right of AL: snapshotA scope Dispose()
+        AL->>AL: restore "root"
+        Note over AL: value = "root"
+    end
 ```
 
 ### Double-dispose safety
@@ -257,9 +270,15 @@ When configured, parameterless calls to `GetContext<T>()` and `SetContext<T>()` 
 
 ContextR validates domain configuration at startup:
 
-```
-if (hasDomainRegistrations && !hasDefaultRegistrations && defaultDomainSelector is null)
-    throw InvalidOperationException("...")
+```mermaid
+flowchart TD
+    A["Builder.Validate()"] --> B{"Has domain\nregistrations?"}
+    B -- No --> OK["✓ Valid"]
+    B -- Yes --> C{"Has default\nregistrations?"}
+    C -- Yes --> OK
+    C -- No --> D{"DefaultDomainSelector\nconfigured?"}
+    D -- Yes --> OK
+    D -- No --> ERR["✗ Throw InvalidOperationException"]
 ```
 
 This prevents a runtime trap: if you register `AddDomain("web-api", ...)` but forget to either add a default `Add<T>()` or configure `AddDomainPolicy(...)`, then parameterless `GetContext<T>()` would silently read from an unregistered null-domain slot. The validation catches this at configuration time.
@@ -312,109 +331,99 @@ The snapshot is captured at DI scope creation time. Within an HTTP request (one 
 
 ## Component overview
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                      ContextStorage                          │
-│  ConcurrentDictionary<ContextKey, AsyncLocal<ContextHolder>> │
-│                                                              │
-│  (null, UserContext):     [Holder] → { UserId: "alice" }     │
-│  (null, TenantContext):   [Holder] → { TenantId: "acme" }    │
-│  ("web-api", UserContext):[Holder] → { UserId: "web-alice" } │
-│  ("grpc", UserContext):   [Holder] → { UserId: "grpc-bob" }  │
-└──────────────────┬──────────────────────┬────────────────────┘
-                   │                      │
-          Read (singleton)          Write (singleton)
-                   │                      │
-            IContextAccessor        IContextWriter
-                   │                      │
-                   └────────┬─────────────┘
-                            │
-                   DefaultContextAccessor
-                   (internal, implements both)
-                            │
-                  ┌─────────┴──────────────┐
-                  │ accessor.CreateSnapshot │
-                  │   (extension method)    │
-                  │                         │
-                  │ Captures all AsyncLocal │
-                  │ values into immutable   │
-                  │ Dictionary<ContextKey,  │
-                  │            object>      │
-                  └─────────┬──────────────┘
-                            │
-                  ┌─────────┴──────────────┐
-                  │  IContextSnapshot       │
-                  │  (scoped service)       │
-                  │                         │
-                  │  GetContext<T>() →       │
-                  │    reads from captured  │
-                  │    dictionary           │
-                  │                         │
-                  │  GetContext<T>(domain) → │
-                  │    domain-specific read │
-                  │                         │
-                  │  BeginScope() →         │
-                  │    1. Save current      │
-                  │       AsyncLocal state  │
-                  │    2. Write snapshot    │
-                  │       values via SetRaw │
-                  │    3. Return IDisposable│
-                  │       that restores on  │
-                  │       dispose           │
-                  └────────────────────────┘
+```mermaid
+graph TD
+    subgraph Storage["ContextStorage"]
+        S1["(null, UserContext) → Holder → alice"]
+        S2["(null, TenantContext) → Holder → acme"]
+        S3["(web-api, UserContext) → Holder → web-alice"]
+        S4["(grpc, UserContext) → Holder → grpc-bob"]
+    end
+
+    Storage -- "Read (singleton)" --> Accessor["IContextAccessor"]
+    Storage -- "Write (singleton)" --> Writer["IContextWriter"]
+
+    Accessor --> DCA["DefaultContextAccessor\n(internal, implements both)"]
+    Writer --> DCA
+
+    DCA -- "CreateSnapshot()\n(extension method)" --> Capture["Captures all AsyncLocal\nvalues into immutable\nDictionary‹ContextKey, object›"]
+
+    Capture --> Snapshot["IContextSnapshot\n(scoped service)"]
+
+    Snapshot --> GetCtx["GetContext‹T›()\nReads from captured dictionary"]
+    Snapshot --> GetDomain["GetContext‹T›(domain)\nDomain-specific read"]
+    Snapshot --> BeginScope["BeginScope()\n1. Save current AsyncLocal state\n2. Write snapshot values via SetRaw\n3. Return IDisposable\n that restores on dispose"]
 ```
 
 ### Snapshot flow
 
-```
-  Application code
-  │
-  │  1. _writer.SetContext(new UserContext("alice"))
-  │     → ContextStorage.Set(null, context)
-  │       → Creates new ContextHolder in AsyncLocal slot
-  │
-  │  2. var snapshot = _accessor.CreateSnapshot()
-  │     → ContextStorage.CaptureAll()
-  │       → Iterates all slots, copies non-null values
-  │       → Returns new ContextSnapshot(values, defaultDomain)
-  │
-  │  3. _writer.SetContext(new UserContext("bob"))
-  │     → AsyncLocal now has "bob"
-  │     → Snapshot still has "alice" (immutable)
-  │
-  │  4. using (snapshot.BeginScope())
-  │     → ContextScope constructor:
-  │       a. CaptureCurrentValues() → saves "bob" as previous
-  │       b. ApplyValues(snapshot) → SetRaw writes "alice" to AsyncLocal
-  │     → _accessor.GetContext<UserContext>() returns "alice"
-  │
-  │  5. Dispose()
-  │     → SetRaw writes "bob" back to AsyncLocal
-  │     → _accessor.GetContext<UserContext>() returns "bob"
+```mermaid
+sequenceDiagram
+    participant App as Application Code
+    participant Writer as IContextWriter
+    participant Store as ContextStorage
+    participant Acc as IContextAccessor
+    participant Snap as IContextSnapshot
+    participant Scope as ContextScope
+
+    App->>Writer: 1. SetContext(new UserContext("alice"))
+    Writer->>Store: Set(null, context)
+    Note over Store: AsyncLocal = "alice"
+
+    App->>Acc: 2. CreateSnapshot()
+    Acc->>Store: CaptureAll()
+    Store-->>Snap: new ContextSnapshot(values)
+    Note over Snap: Captured: "alice"
+
+    App->>Writer: 3. SetContext(new UserContext("bob"))
+    Writer->>Store: Set(null, context)
+    Note over Store: AsyncLocal = "bob"
+    Note over Snap: Still "alice" (immutable)
+
+    App->>Snap: 4. BeginScope()
+    Snap->>Scope: new ContextScope(snapshot values)
+    Scope->>Store: CaptureCurrentValues() → saves "bob"
+    Scope->>Store: SetRaw → writes "alice"
+    Note over Store: AsyncLocal = "alice"
+
+    App->>Acc: GetContext‹UserContext›()
+    Acc-->>App: "alice"
+
+    App->>Scope: 5. Dispose()
+    Scope->>Store: SetRaw → writes "bob" back
+    Note over Store: AsyncLocal = "bob"
 ```
 
 ### Domain isolation flow
 
+```mermaid
+graph LR
+    subgraph Storage["ContextStorage slots"]
+        Default["(null, UserContext)\n→ 'default'"]
+        Web["(web-api, UserContext)\n→ 'web'"]
+        Grpc["(grpc, UserContext)\n→ 'grpc'"]
+    end
+
+    A1["GetContext‹UserContext›()"] -- "null domain" --> Default
+    A2["GetContext‹UserContext›('web-api')"] --> Web
+    A3["GetContext‹UserContext›('grpc')"] --> Grpc
 ```
-  _writer.SetContext(new UserContext("default"));
-  _writer.SetContext("web-api", new UserContext("web"));
-  _writer.SetContext("grpc", new UserContext("grpc"));
 
-  Storage state:
-  ┌─────────────────────────────────────────────┐
-  │ (null,      UserContext) → "default"         │
-  │ ("web-api", UserContext) → "web"             │
-  │ ("grpc",    UserContext) → "grpc"            │
-  └─────────────────────────────────────────────┘
+**Without `DefaultDomainSelector`:**
 
-  _accessor.GetContext<UserContext>()          → "default"
-  _accessor.GetContext<UserContext>("web-api") → "web"
-  _accessor.GetContext<UserContext>("grpc")    → "grpc"
+| Call | Resolves to slot | Returns |
+|---|---|---|
+| `GetContext<UserContext>()` | `(null, UserContext)` | `"default"` |
+| `GetContext<UserContext>("web-api")` | `("web-api", UserContext)` | `"web"` |
+| `GetContext<UserContext>("grpc")` | `("grpc", UserContext)` | `"grpc"` |
 
-  // With DefaultDomainSelector = _ => "web-api":
-  _accessor.GetContext<UserContext>()          → "web"  (delegated)
-  _accessor.GetContext<UserContext>("web-api") → "web"
-```
+**With `DefaultDomainSelector = _ => "web-api"`:**
+
+| Call | Resolves to slot | Returns |
+|---|---|---|
+| `GetContext<UserContext>()` | `("web-api", UserContext)` | `"web"` (delegated) |
+| `GetContext<UserContext>("web-api")` | `("web-api", UserContext)` | `"web"` |
+| `GetContext<UserContext>("grpc")` | `("grpc", UserContext)` | `"grpc"` |
 
 ---
 
