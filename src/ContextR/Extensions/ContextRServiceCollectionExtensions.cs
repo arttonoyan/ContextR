@@ -1,9 +1,8 @@
-using ContextR.DependencyInjection;
 using ContextR.Internal;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using ContextR;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace ContextR;
 
 /// <summary>
 /// Extension methods for registering ContextR core services.
@@ -21,12 +20,12 @@ public static class ContextRServiceCollectionExtensions
     /// </exception>
     public static IServiceCollection AddContextR(
         this IServiceCollection services,
-        Action<IContextRBuilder> configure)
+        Action<IContextBuilder> configure)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
 
-        var builder = new ContextRBuilder();
+        var builder = new ContextBuilder();
         configure(builder);
 
         services.TryAddSingleton<MutableContextAccessor>();
