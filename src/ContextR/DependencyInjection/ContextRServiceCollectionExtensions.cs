@@ -1,0 +1,39 @@
+using ContextR.DependencyInjection;
+using ContextR.Internal;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using ContextR;
+
+namespace Microsoft.Extensions.DependencyInjection;
+
+/// <summary>
+/// Extension methods for registering ContextR core services.
+/// </summary>
+public static class ContextRServiceCollectionExtensions
+{
+    /// <summary>
+    /// Registers ContextR core services and applies context registrations.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configure">The fluent ContextR configuration callback.</param>
+    /// <returns>The service collection.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="services"/> or <paramref name="configure"/> is <see langword="null"/>.
+    /// </exception>
+    public static IServiceCollection AddContextR(
+        this IServiceCollection services,
+        Action<IContextRBuilder> configure)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var builder = new ContextRBuilder();
+        configure(builder);
+
+        services.TryAddSingleton<MutableContextAccessor>();
+        services.TryAddSingleton<IContextAccessor>(static sp => sp.GetRequiredService<MutableContextAccessor>());
+        services.TryAddSingleton<IContextWriter>(static sp => sp.GetRequiredService<MutableContextAccessor>());
+        services.TryAddScoped<IContextSnapshot>(static _ => new ContextSnapshot(MutableContextAccessor.CaptureCurrentValues()));
+
+        return services;
+    }
+}
