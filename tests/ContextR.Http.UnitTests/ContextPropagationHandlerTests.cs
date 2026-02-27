@@ -112,6 +112,80 @@ public sealed class ContextPropagationHandlerTests
         Assert.NotNull(handlerDescriptor);
     }
 
+    [Fact]
+    public void UseGlobalHttpPropagation_WithDomain_RegistersFactoryDescriptor()
+    {
+        var services = new ServiceCollection();
+
+        services.AddContextR(ctx =>
+        {
+            ctx.Add<TestContext>()
+               .AddDomain("my-domain", d => d.Add<TestContext>(reg => reg
+                   .MapProperty(c => c.TenantId, "X-Tenant-Id")
+                   .UseGlobalHttpPropagation()));
+        });
+
+        var handlerDescriptor = services.FirstOrDefault(d =>
+            d.ServiceType == typeof(ContextPropagationHandler<TestContext>));
+
+        Assert.NotNull(handlerDescriptor);
+        Assert.NotNull(handlerDescriptor.ImplementationFactory);
+    }
+
+    [Fact]
+    public void UseGlobalHttpPropagation_IsChainable()
+    {
+        var services = new ServiceCollection();
+        IContextRegistrationBuilder<TestContext>? capturedBuilder = null;
+
+        services.AddContextR(ctx => ctx.Add<TestContext>(reg =>
+        {
+            capturedBuilder = reg
+                .MapProperty(c => c.TenantId, "X-Tenant-Id")
+                .UseGlobalHttpPropagation();
+        }));
+
+        Assert.NotNull(capturedBuilder);
+    }
+
+    [Fact]
+    public void AddContextRHandler_IsChainable()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(ctx => ctx.Add<TestContext>(reg => reg
+            .MapProperty(c => c.TenantId, "X-Tenant-Id")));
+
+        var httpBuilder = services.AddHttpClient("test-client");
+        var result = httpBuilder.AddContextRHandler<TestContext>();
+
+        Assert.Same(httpBuilder, result);
+    }
+
+    [Fact]
+    public async Task PublicConstructor_UsesDomainNull()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(ctx => ctx.Add<TestContext>(reg => reg
+            .MapProperty(c => c.TenantId, "X-Tenant-Id")));
+        using var provider = services.BuildServiceProvider();
+
+        var writer = provider.GetRequiredService<IContextWriter>();
+        writer.SetContext(new TestContext { TenantId = "default-value" });
+
+        var handler = new ContextPropagationHandler<TestContext>(
+            provider.GetRequiredService<IContextAccessor>(),
+            provider.GetRequiredService<IContextPropagator<TestContext>>())
+        {
+            InnerHandler = new StubHandler()
+        };
+
+        using var client = new HttpClient(handler);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost");
+        await client.SendAsync(request);
+
+        Assert.Equal("default-value", request.Headers.GetValues("X-Tenant-Id").Single());
+    }
+
     public class TestContext
     {
         public string? TenantId { get; set; }

@@ -21,9 +21,6 @@ internal static class PropertyMapping
                 $"Expression must reference a property, got {member.Member.MemberType}.",
                 nameof(propertyExpression));
 
-        if (!propertyInfo.CanRead)
-            throw new ArgumentException($"Property '{propertyInfo.Name}' must be readable.", nameof(propertyExpression));
-
         if (!propertyInfo.CanWrite)
             throw new ArgumentException($"Property '{propertyInfo.Name}' must be writable.", nameof(propertyExpression));
 
