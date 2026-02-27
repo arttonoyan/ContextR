@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace ContextR;
 
 internal sealed class ContextBuilder : IContextBuilder
@@ -7,6 +9,13 @@ internal sealed class ContextBuilder : IContextBuilder
     private bool _hasDefaultRegistrations;
     private bool _hasDomainRegistrations;
 
+    public ContextBuilder(IServiceCollection services)
+    {
+        Services = services;
+    }
+
+    public IServiceCollection Services { get; }
+
     internal ContextDomainPolicy DomainPolicy { get; } = new();
 
     public IContextBuilder Add<TContext>(Action<IContextRegistrationBuilder<TContext>>? configure = null)
@@ -14,7 +23,9 @@ internal sealed class ContextBuilder : IContextBuilder
     {
         _registeredTypes.Add(typeof(TContext));
         _hasDefaultRegistrations = true;
-        configure?.Invoke(new ContextRegistrationBuilder<TContext>());
+        var regBuilder = new ContextRegistrationBuilder<TContext>(Services, domain: null);
+        configure?.Invoke(regBuilder);
+        regBuilder.Build();
         return this;
     }
 
@@ -24,7 +35,7 @@ internal sealed class ContextBuilder : IContextBuilder
         ArgumentNullException.ThrowIfNull(configure);
 
         _hasDomainRegistrations = true;
-        var domainBuilder = new DomainContextBuilder(domain);
+        var domainBuilder = new DomainContextBuilder(domain, Services);
         configure(domainBuilder);
         return this;
     }

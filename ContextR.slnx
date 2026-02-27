@@ -11,9 +11,13 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/ContextR/ContextR.csproj" Id="c34f394b-1b7c-406b-86c4-fe83bba6a052" />
+    <Project Path="src/ContextR.Http/ContextR.Http.csproj" Id="a1d2e3f4-5678-90ab-cdef-112233445566" />
+    <Project Path="src/ContextR.AspNetCore/ContextR.AspNetCore.csproj" Id="b2c3d4e5-6789-01bc-defa-223344556677" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ContextR.UnitTests/ContextR.UnitTests.csproj" Id="12f7610c-c687-4fac-95fd-5597f56fedf3" />
     <Project Path="tests/ContextR.IntegrationTests/ContextR.IntegrationTests.csproj" Id="5f669f4f-9ffb-49a2-8b81-90304c48d859" />
+    <Project Path="tests/ContextR.Http.UnitTests/ContextR.Http.UnitTests.csproj" Id="c3d4e5f6-7890-12cd-efab-334455667788" />
+    <Project Path="tests/ContextR.AspNetCore.UnitTests/ContextR.AspNetCore.UnitTests.csproj" Id="d4e5f6a7-8901-23de-fabc-445566778899" />
   </Folder>
 </Solution>

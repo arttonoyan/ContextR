@@ -25,7 +25,7 @@ public static class ContextRServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
 
-        var builder = new ContextBuilder();
+        var builder = new ContextBuilder(services);
         configure(builder);
         builder.Validate();
 

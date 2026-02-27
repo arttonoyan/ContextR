@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ContextR\ContextR.csproj" />
+    <ProjectReference Include="..\ContextR.Http\ContextR.Http.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ContextR.AspNetCore.UnitTests" />
+  </ItemGroup>
+</Project>

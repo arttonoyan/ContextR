@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace ContextR;
 
 /// <summary>
@@ -5,6 +7,12 @@ namespace ContextR;
 /// </summary>
 public interface IContextBuilder
 {
+    /// <summary>
+    /// Gets the service collection that ContextR services are registered into.
+    /// Transport packages use this to register their own services via extension methods.
+    /// </summary>
+    IServiceCollection Services { get; }
+
     /// <summary>
     /// Registers a context type for ContextR and optionally configures its registration builder.
     /// </summary>
