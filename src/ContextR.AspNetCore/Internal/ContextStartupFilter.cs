@@ -17,7 +17,11 @@ internal sealed class ContextStartupFilter<TContext> : IStartupFilter
     {
         return app =>
         {
-            app.UseMiddleware<ContextMiddleware<TContext>>(_domain);
+            if (_domain is not null)
+                app.UseMiddleware<ContextMiddleware<TContext>>(_domain);
+            else
+                app.UseMiddleware<ContextMiddleware<TContext>>();
+
             next(app);
         };
     }

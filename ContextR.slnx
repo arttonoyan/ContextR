@@ -21,5 +21,6 @@
     <Project Path="tests/ContextR.Propagation.UnitTests/ContextR.Propagation.UnitTests.csproj" Id="f6a7b8c9-0123-45fa-bcde-667788990011" />
     <Project Path="tests/ContextR.Http.UnitTests/ContextR.Http.UnitTests.csproj" Id="c3d4e5f6-7890-12cd-efab-334455667788" />
     <Project Path="tests/ContextR.AspNetCore.UnitTests/ContextR.AspNetCore.UnitTests.csproj" Id="d4e5f6a7-8901-23de-fabc-445566778899" />
+    <Project Path="tests/ContextR.Http.IntegrationTests/ContextR.Http.IntegrationTests.csproj" Id="e5f6a7b8-0123-45ef-bcde-556677889911" />
   </Folder>
 </Solution>
