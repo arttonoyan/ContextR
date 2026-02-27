@@ -11,7 +11,7 @@ internal sealed class ContextSnapshot : IContextSnapshot
         _values = new Dictionary<Type, object>(values);
     }
 
-    public TContext? Get<TContext>() where TContext : class
+    public TContext? GetContext<TContext>() where TContext : class
     {
         return _values.TryGetValue(typeof(TContext), out var value) ? value as TContext : null;
     }

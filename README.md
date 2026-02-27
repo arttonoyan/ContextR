@@ -19,7 +19,7 @@ var snapshot = accessor.Capture();
 
 using (snapshot.BeginScope())
 {
-    var currentUser = accessor.Get<UserContext>();
+    var currentUser = accessor.GetContext<UserContext>();
     // execute work with snapshot active
 }
 ```

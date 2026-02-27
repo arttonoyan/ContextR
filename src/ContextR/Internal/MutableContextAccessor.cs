@@ -4,12 +4,12 @@ internal sealed class MutableContextAccessor : IContextAccessor, IContextWriter
 {
     private static readonly ContextStorage Storage = new();
 
-    public TContext? Get<TContext>() where TContext : class
+    public TContext? GetContext<TContext>() where TContext : class
     {
         return Storage.Get<TContext>();
     }
 
-    public void Set<TContext>(TContext? context) where TContext : class
+    public void SetContext<TContext>(TContext? context) where TContext : class
     {
         Storage.Set(context);
     }

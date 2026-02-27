@@ -10,5 +10,5 @@ public interface IContextAccessor
     /// </summary>
     /// <typeparam name="TContext">The context type.</typeparam>
     /// <returns>The current context value, or <see langword="null"/> when not set.</returns>
-    TContext? Get<TContext>() where TContext : class;
+    TContext? GetContext<TContext>() where TContext : class;
 }

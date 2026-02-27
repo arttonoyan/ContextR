@@ -12,5 +12,5 @@ public interface IContextWriter
     /// <param name="context">
     /// The value to set, or <see langword="null"/> to clear according to writer semantics.
     /// </param>
-    void Set<TContext>(TContext? context) where TContext : class;
+    void SetContext<TContext>(TContext? context) where TContext : class;
 }

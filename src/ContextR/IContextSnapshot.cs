@@ -10,7 +10,7 @@ public interface IContextSnapshot
     /// </summary>
     /// <typeparam name="TContext">The context type.</typeparam>
     /// <returns>The captured context value, or <see langword="null"/> when not present.</returns>
-    TContext? Get<TContext>() where TContext : class;
+    TContext? GetContext<TContext>() where TContext : class;
 
     /// <summary>
     /// Activates this snapshot for the current execution flow and returns a disposable boundary
