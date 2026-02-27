@@ -20,7 +20,6 @@ internal sealed class DomainContextBuilder : IDomainContextBuilder
         _registeredTypes.Add(typeof(TContext));
         var regBuilder = new ContextRegistrationBuilder<TContext>(_services, _domain);
         configure?.Invoke(regBuilder);
-        regBuilder.Build();
         return this;
     }
 }

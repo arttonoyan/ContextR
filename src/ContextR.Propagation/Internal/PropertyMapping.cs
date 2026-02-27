@@ -1,14 +1,8 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace ContextR.Internal;
-
-internal interface IPropertyMapping<TContext> where TContext : class
-{
-    string Key { get; }
-    string? GetValue(TContext context);
-    bool TrySetValue(TContext context, string value);
-}
+namespace ContextR.Propagation.Internal;
 
 internal static class PropertyMapping
 {
@@ -81,7 +75,7 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
         }
     }
 
-    private static bool TryParse(string value, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TProperty? result)
+    private static bool TryParse(string value, [NotNullWhen(true)] out TProperty? result)
     {
         var type = Nullable.GetUnderlyingType(typeof(TProperty)) ?? typeof(TProperty);
 

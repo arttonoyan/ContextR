@@ -5,7 +5,5 @@
   <ItemGroup>
     <InternalsVisibleTo Include="ContextR.UnitTests" />
     <InternalsVisibleTo Include="ContextR.IntegrationTests" />
-    <InternalsVisibleTo Include="ContextR.Http.UnitTests" />
-    <InternalsVisibleTo Include="ContextR.AspNetCore.UnitTests" />
   </ItemGroup>
 </Project>

@@ -25,7 +25,6 @@ internal sealed class ContextBuilder : IContextBuilder
         _hasDefaultRegistrations = true;
         var regBuilder = new ContextRegistrationBuilder<TContext>(Services, domain: null);
         configure?.Invoke(regBuilder);
-        regBuilder.Build();
         return this;
     }
 

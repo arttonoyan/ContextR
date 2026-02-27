@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ContextR.AspNetCore\ContextR.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\ContextR.Propagation\ContextR.Propagation.csproj" />
   </ItemGroup>
 
   <ItemGroup>

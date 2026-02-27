@@ -1,21 +1,20 @@
-namespace ContextR.Internal;
+namespace ContextR.Propagation.Internal;
 
 internal sealed class MappingContextPropagator<TContext> : IContextPropagator<TContext>
     where TContext : class
 {
     private readonly IPropertyMapping<TContext>[] _mappings;
 
-    public MappingContextPropagator(IPropertyMapping<TContext>[] mappings)
+    public MappingContextPropagator(IEnumerable<IPropertyMapping<TContext>> mappings)
     {
         if (!HasParameterlessConstructor())
         {
             throw new InvalidOperationException(
                 $"Context type '{typeof(TContext).FullName}' must have a public parameterless constructor " +
-                $"to use {nameof(IContextRegistrationBuilder<TContext>.MapProperty)}. " +
-                $"Either add a parameterless constructor or use {nameof(IContextRegistrationBuilder<TContext>.UsePropagator)} instead.");
+                "to use MapProperty. Either add a parameterless constructor or use UsePropagator instead.");
         }
 
-        _mappings = mappings;
+        _mappings = mappings.ToArray();
     }
 
     public void Inject<TCarrier>(TContext context, TCarrier carrier, Action<TCarrier, string, string> setter)
