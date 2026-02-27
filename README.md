@@ -385,6 +385,21 @@ ContextR validates configuration at startup:
 
 ## What ContextR is NOT
 
-- **Not tied to HTTP, gRPC, or any transport.** It is a pure context-propagation library. Integration with specific transports is left to the consumer.
+- **Not tied to HTTP, gRPC, or any transport.** It is a pure context-propagation library. Integration with specific transports is provided by dedicated packages (see [Packages](#packages) below).
 - **Not a replacement for `Activity` / distributed tracing.** `Activity` is for trace IDs and spans. ContextR is for application-level context values.
 - **Not a DI container.** It stores ambient values in `AsyncLocal`, not in the service provider.
+
+## Packages
+
+| Package | Description | Status |
+|---|---|---|
+| `ContextR` | Core library -- storage, snapshots, scopes, domains | Available |
+| `ContextR.AspNetCore` | ASP.NET Core middleware for extracting context from HTTP headers | Planned |
+| `ContextR.Grpc` | gRPC client/server interceptors | Planned |
+| `ContextR.Kafka` | Kafka producer/consumer context propagation | Planned |
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [Architecture and Design Decisions](docs/ARCHITECTURE.md) | Internal architecture, storage design, Set vs SetRaw, domain-scoping design, DI registration rationale, FAQ |
