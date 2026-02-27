@@ -30,13 +30,13 @@ public static class ContextRServiceCollectionExtensions
         builder.Validate();
 
         services.TryAddSingleton(builder.DomainPolicy);
-        services.TryAddSingleton<MutableContextAccessor>();
-        services.TryAddSingleton<IContextAccessor>(static sp => sp.GetRequiredService<MutableContextAccessor>());
-        services.TryAddSingleton<IContextWriter>(static sp => sp.GetRequiredService<MutableContextAccessor>());
+        services.TryAddSingleton<DefaultContextAccessor>();
+        services.TryAddSingleton<IContextAccessor>(static sp => sp.GetRequiredService<DefaultContextAccessor>());
+        services.TryAddSingleton<IContextWriter>(static sp => sp.GetRequiredService<DefaultContextAccessor>());
         services.TryAddScoped<IContextSnapshot>(static sp =>
         {
-            var accessor = sp.GetRequiredService<MutableContextAccessor>();
-            return new ContextSnapshot(MutableContextAccessor.CaptureCurrentValues(), accessor.DefaultDomain);
+            var accessor = sp.GetRequiredService<DefaultContextAccessor>();
+            return new ContextSnapshot(DefaultContextAccessor.CaptureCurrentValues(), accessor.DefaultDomain);
         });
 
         return services;

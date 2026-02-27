@@ -19,8 +19,8 @@ public static class ContextSnapshotExtensions
     {
         ArgumentNullException.ThrowIfNull(accessor);
 
-        var defaultDomain = (accessor as MutableContextAccessor)?.DefaultDomain;
-        return new ContextSnapshot(MutableContextAccessor.CaptureCurrentValues(), defaultDomain);
+        var defaultDomain = (accessor as DefaultContextAccessor)?.DefaultDomain;
+        return new ContextSnapshot(DefaultContextAccessor.CaptureCurrentValues(), defaultDomain);
     }
 
     /// <summary>
@@ -40,7 +40,7 @@ public static class ContextSnapshotExtensions
         ArgumentNullException.ThrowIfNull(accessor);
         ArgumentNullException.ThrowIfNull(context);
 
-        var defaultDomain = (accessor as MutableContextAccessor)?.DefaultDomain;
+        var defaultDomain = (accessor as DefaultContextAccessor)?.DefaultDomain;
         return new ContextSnapshot(new Dictionary<ContextKey, object>
         {
             [new ContextKey(defaultDomain, typeof(TContext))] = context
@@ -65,7 +65,7 @@ public static class ContextSnapshotExtensions
         ArgumentNullException.ThrowIfNull(accessor);
         ArgumentNullException.ThrowIfNull(context);
 
-        var defaultDomain = (accessor as MutableContextAccessor)?.DefaultDomain;
+        var defaultDomain = (accessor as DefaultContextAccessor)?.DefaultDomain;
         return new ContextSnapshot(new Dictionary<ContextKey, object>
         {
             [new ContextKey(domain, typeof(TContext))] = context

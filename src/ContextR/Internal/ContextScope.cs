@@ -8,7 +8,7 @@ internal sealed class ContextScope : IDisposable
 
     public ContextScope(IReadOnlyDictionary<ContextKey, object> nextValues)
     {
-        var current = MutableContextAccessor.CaptureCurrentValues();
+        var current = DefaultContextAccessor.CaptureCurrentValues();
         _appliedKeys = nextValues.Keys.ToList();
         _previousValues = new Dictionary<ContextKey, object?>(_appliedKeys.Count);
 
@@ -19,7 +19,7 @@ internal sealed class ContextScope : IDisposable
                 : null;
         }
 
-        MutableContextAccessor.ApplyValues(nextValues);
+        DefaultContextAccessor.ApplyValues(nextValues);
     }
 
     public void Dispose()
@@ -39,7 +39,7 @@ internal sealed class ContextScope : IDisposable
         foreach (var key in _appliedKeys)
         {
             _previousValues.TryGetValue(key, out var previous);
-            MutableContextAccessor.SetRawValue(key, previous);
+            DefaultContextAccessor.SetRawValue(key, previous);
         }
     }
 }

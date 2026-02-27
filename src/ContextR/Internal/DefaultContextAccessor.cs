@@ -1,12 +1,12 @@
 namespace ContextR.Internal;
 
-internal sealed class MutableContextAccessor : IContextAccessor, IContextWriter
+internal sealed class DefaultContextAccessor : IContextAccessor, IContextWriter
 {
     private static readonly ContextStorage Storage = new();
 
     private readonly string? _defaultDomain;
 
-    public MutableContextAccessor(ContextDomainPolicy domainPolicy, IServiceProvider serviceProvider)
+    public DefaultContextAccessor(ContextDomainPolicy domainPolicy, IServiceProvider serviceProvider)
     {
         _defaultDomain = domainPolicy.DefaultDomainSelector?.Invoke(serviceProvider);
     }
