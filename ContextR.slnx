@@ -3,6 +3,8 @@
     <File Path=".gitignore" />
     <File Path="LICENSE" />
     <File Path="README.md" />
+    <File Path="Directory.Packages.props" />
+    <File Path="Directory.Build.props" />
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/tests/" />
