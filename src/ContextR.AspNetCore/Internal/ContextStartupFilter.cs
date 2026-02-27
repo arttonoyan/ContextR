@@ -6,11 +6,18 @@ namespace ContextR.AspNetCore.Internal;
 internal sealed class ContextStartupFilter<TContext> : IStartupFilter
     where TContext : class
 {
+    private readonly string? _domain;
+
+    public ContextStartupFilter(string? domain)
+    {
+        _domain = domain;
+    }
+
     public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
     {
         return app =>
         {
-            app.UseMiddleware<ContextMiddleware<TContext>>();
+            app.UseMiddleware<ContextMiddleware<TContext>>(_domain);
             next(app);
         };
     }

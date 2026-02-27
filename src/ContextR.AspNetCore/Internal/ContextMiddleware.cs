@@ -5,10 +5,12 @@ namespace ContextR.AspNetCore.Internal;
 internal sealed class ContextMiddleware<TContext> where TContext : class
 {
     private readonly RequestDelegate _next;
+    private readonly string? _domain;
 
-    public ContextMiddleware(RequestDelegate next)
+    public ContextMiddleware(RequestDelegate next, string? domain = null)
     {
         _next = next;
+        _domain = domain;
     }
 
     public async Task InvokeAsync(
@@ -21,7 +23,12 @@ internal sealed class ContextMiddleware<TContext> where TContext : class
             static (headers, key) => headers.TryGetValue(key, out var values) ? (string?)values : null);
 
         if (context is not null)
-            writer.SetContext(context);
+        {
+            if (_domain is not null)
+                writer.SetContext(_domain, context);
+            else
+                writer.SetContext(context);
+        }
 
         await _next(httpContext);
     }

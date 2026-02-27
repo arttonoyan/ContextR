@@ -11,12 +11,22 @@ public class ContextPropagationHandler<TContext> : DelegatingHandler
 {
     private readonly IContextAccessor _accessor;
     private readonly IContextPropagator<TContext> _propagator;
+    private readonly string? _domain;
 
     /// <inheritdoc cref="ContextPropagationHandler{TContext}" />
     public ContextPropagationHandler(IContextAccessor accessor, IContextPropagator<TContext> propagator)
+        : this(accessor, propagator, domain: null)
+    {
+    }
+
+    internal ContextPropagationHandler(
+        IContextAccessor accessor,
+        IContextPropagator<TContext> propagator,
+        string? domain)
     {
         _accessor = accessor;
         _propagator = propagator;
+        _domain = domain;
     }
 
     /// <inheritdoc />
@@ -24,7 +34,10 @@ public class ContextPropagationHandler<TContext> : DelegatingHandler
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        var context = _accessor.GetContext<TContext>();
+        var context = _domain is not null
+            ? _accessor.GetContext<TContext>(_domain)
+            : _accessor.GetContext<TContext>();
+
         if (context is not null)
         {
             _propagator.Inject(context, request.Headers,

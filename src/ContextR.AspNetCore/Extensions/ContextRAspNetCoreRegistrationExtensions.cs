@@ -15,6 +15,10 @@ public static class ContextRAspNetCoreRegistrationExtensions
     /// using the registered <see cref="IContextPropagator{TContext}"/>.
     /// The middleware is automatically added to the beginning of the request pipeline
     /// via an <see cref="IStartupFilter"/>.
+    /// <para>
+    /// When used within <see cref="IContextBuilder.AddDomain"/>, context is written
+    /// to the specified domain rather than the default.
+    /// </para>
     /// </summary>
     /// <typeparam name="TContext">The context type to extract.</typeparam>
     /// <param name="builder">The context registration builder.</param>
@@ -23,7 +27,10 @@ public static class ContextRAspNetCoreRegistrationExtensions
         this IContextRegistrationBuilder<TContext> builder)
         where TContext : class
     {
-        builder.Services.AddSingleton<IStartupFilter, ContextStartupFilter<TContext>>();
+        var domain = builder.Domain;
+        builder.Services.AddSingleton<IStartupFilter>(
+            _ => new ContextStartupFilter<TContext>(domain));
+
         return builder;
     }
 }
