@@ -6,6 +6,16 @@ namespace ContextR.Propagation.UnitTests;
 public sealed class MapPropertyGuardClauseTests
 {
     [Fact]
+    public void MapProperty_Throws_WhenBuilderIsNull()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            ContextRPropagationExtensions.MapProperty<TestContext, string?>(
+                null!,
+                c => c.TenantId,
+                "X-Key"));
+    }
+
+    [Fact]
     public void MapProperty_Throws_WhenPropertyExpressionIsNull()
     {
         var services = new ServiceCollection();

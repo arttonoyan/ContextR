@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using ContextR.Propagation;
+using ContextR.Propagation.Mapping;
 
 namespace ContextR.Propagation.Internal;
 
@@ -12,7 +13,8 @@ internal static class PropertyMapping
         Expression<Func<TContext, TProperty>> propertyExpression,
         string key,
         IContextPayloadSerializer<TContext>? payloadSerializer = null,
-        IContextTransportPolicy<TContext>? transportPolicy = null)
+        IContextTransportPolicy<TContext>? transportPolicy = null,
+        PropertyRequirement requirement = PropertyRequirement.Optional)
         where TContext : class
     {
         var member = propertyExpression.Body as MemberExpression
@@ -35,7 +37,7 @@ internal static class PropertyMapping
             Expression.Assign(Expression.Property(setterParam, propertyInfo), valueParam),
             setterParam, valueParam).Compile();
 
-        return new PropertyMapping<TContext, TProperty>(key, getter, setter, payloadSerializer, transportPolicy);
+        return new PropertyMapping<TContext, TProperty>(key, getter, setter, payloadSerializer, transportPolicy, requirement);
     }
 }
 
@@ -52,16 +54,19 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
         Func<TContext, TProperty> getter,
         Action<TContext, TProperty> setter,
         IContextPayloadSerializer<TContext>? payloadSerializer,
-        IContextTransportPolicy<TContext>? transportPolicy)
+        IContextTransportPolicy<TContext>? transportPolicy,
+        PropertyRequirement requirement)
     {
         Key = key;
         _getter = getter;
         _setter = setter;
         _payloadSerializer = payloadSerializer;
         _transportPolicy = transportPolicy;
+        IsRequired = requirement == PropertyRequirement.Required;
     }
 
     public string Key { get; }
+    public bool IsRequired { get; }
 
     public string? GetValue(TContext context)
     {
@@ -147,9 +152,11 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
         return _transportPolicy.OversizeBehavior switch
         {
             ContextOversizeBehavior.SkipProperty => null,
-            ContextOversizeBehavior.FailFast => throw new InvalidOperationException(
+            ContextOversizeBehavior.FailFast => throw new PropertyMappingException(
+                PropagationFailureReason.Oversize,
                 $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {_transportPolicy.MaxPayloadBytes} bytes)."),
-            ContextOversizeBehavior.FallbackToToken => throw new InvalidOperationException(
+            ContextOversizeBehavior.FallbackToToken => throw new PropertyMappingException(
+                PropagationFailureReason.TokenFallbackUnavailable,
                 $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {_transportPolicy.MaxPayloadBytes} bytes) and requested token fallback, but no token strategy is configured."),
             _ => throw new InvalidOperationException("Unsupported oversize behavior.")
         };
@@ -163,9 +170,11 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
         return _transportPolicy.OversizeBehavior switch
         {
             ContextOversizeBehavior.SkipProperty => false,
-            ContextOversizeBehavior.FailFast => throw new InvalidOperationException(
+            ContextOversizeBehavior.FailFast => throw new PropertyMappingException(
+                PropagationFailureReason.Oversize,
                 $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {_transportPolicy.MaxPayloadBytes} bytes)."),
-            ContextOversizeBehavior.FallbackToToken => throw new InvalidOperationException(
+            ContextOversizeBehavior.FallbackToToken => throw new PropertyMappingException(
+                PropagationFailureReason.TokenFallbackUnavailable,
                 $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {_transportPolicy.MaxPayloadBytes} bytes) and requested token fallback, but no token strategy is configured."),
             _ => throw new InvalidOperationException("Unsupported oversize behavior.")
         };

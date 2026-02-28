@@ -49,4 +49,42 @@ public static class ContextRPropagationRegistrationExtensions
         builder.Services.TryAddSingleton<IContextTransportPolicy<TContext>, TPolicy>();
         return builder;
     }
+
+    /// <summary>
+    /// Registers a propagation failure handler implementation.
+    /// </summary>
+    public static IContextRegistrationBuilder<TContext> OnPropagationFailure<TContext, THandler>(
+        this IContextRegistrationBuilder<TContext> builder)
+        where TContext : class
+        where THandler : class, IContextPropagationFailureHandler<TContext>
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Services.TryAddSingleton<IContextPropagationFailureHandler<TContext>, THandler>();
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers a propagation failure handler delegate.
+    /// </summary>
+    public static IContextRegistrationBuilder<TContext> OnPropagationFailure<TContext>(
+        this IContextRegistrationBuilder<TContext> builder,
+        Func<PropagationFailureContext, PropagationFailureAction> handler)
+        where TContext : class
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(handler);
+
+        builder.Services.TryAddSingleton<IContextPropagationFailureHandler<TContext>>(
+            _ => new DelegateContextPropagationFailureHandler<TContext>(handler));
+
+        return builder;
+    }
+
+    private sealed class DelegateContextPropagationFailureHandler<TContext>(
+        Func<PropagationFailureContext, PropagationFailureAction> handler)
+        : IContextPropagationFailureHandler<TContext>
+        where TContext : class
+    {
+        public PropagationFailureAction Handle(PropagationFailureContext failure) => handler(failure);
+    }
 }

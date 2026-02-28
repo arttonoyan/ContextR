@@ -13,6 +13,25 @@ namespace ContextR.Propagation.Mapping;
 public static class ContextRPropagationExtensions
 {
     /// <summary>
+    /// Configures advanced property mappings through a fluent mapping DSL.
+    /// </summary>
+    /// <typeparam name="TContext">The context type.</typeparam>
+    /// <param name="builder">The context registration builder.</param>
+    /// <param name="configure">Mapping configuration callback.</param>
+    /// <returns>The same builder for fluent chaining.</returns>
+    public static IContextRegistrationBuilder<TContext> Map<TContext>(
+        this IContextRegistrationBuilder<TContext> builder,
+        Func<ContextMapBuilder<TContext>, ContextMapBuilder<TContext>> configure)
+        where TContext : class
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        _ = configure(new ContextMapBuilder<TContext>(builder));
+        return builder;
+    }
+
+    /// <summary>
     /// Maps a context property to a transport key name (e.g., an HTTP header).
     /// <para>
     /// Call multiple times to map several properties. The framework auto-generates
@@ -35,6 +54,7 @@ public static class ContextRPropagationExtensions
         string key)
         where TContext : class
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(property);
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
@@ -46,7 +66,10 @@ public static class ContextRPropagationExtensions
                 sp.GetService<IContextTransportPolicy<TContext>>()));
 
         builder.Services.TryAddSingleton<IContextPropagator<TContext>>(sp =>
-            new MappingContextPropagator<TContext>(sp.GetServices<IPropertyMapping<TContext>>()));
+            new MappingContextPropagator<TContext>(
+                sp.GetServices<IPropertyMapping<TContext>>(),
+                sp.GetService<IContextPropagationFailureHandler<TContext>>(),
+                builder.Domain));
 
         return builder;
     }

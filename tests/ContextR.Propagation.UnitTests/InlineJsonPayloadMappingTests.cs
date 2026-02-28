@@ -61,7 +61,7 @@ public sealed class InlineJsonPayloadMappingTests
         var carrier = new Dictionary<string, string>();
         var context = new TestContext { Tags = Enumerable.Repeat("value", 10).ToList() };
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.ThrowsAny<InvalidOperationException>(() =>
             propagator.Inject(context, carrier, static (c, k, v) => c[k] = v));
 
         Assert.Contains("exceeded limit", ex.Message);

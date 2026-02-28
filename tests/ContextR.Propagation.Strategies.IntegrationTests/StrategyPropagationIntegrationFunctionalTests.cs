@@ -53,7 +53,7 @@ public sealed class StrategyPropagationIntegrationFunctionalTests
             maxPayloadBytes: 64,
             oversizeBehavior: ContextOversizeBehavior.FailFast);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             app.GetRawAsync("/propagate/complex/oversize"));
 
         Assert.Contains("exceeded limit", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -116,7 +116,7 @@ public sealed class StrategyPropagationIntegrationFunctionalTests
             maxPayloadBytes: 64,
             oversizeBehavior: ContextOversizeBehavior.FallbackToToken);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             app.GetRawAsync("/propagate/complex/oversize"));
 
         Assert.Contains("requested token fallback", ex.Message, StringComparison.OrdinalIgnoreCase);
