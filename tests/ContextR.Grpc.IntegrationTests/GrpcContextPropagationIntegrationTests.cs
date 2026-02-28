@@ -38,4 +38,20 @@ public sealed class GrpcContextPropagationIntegrationTests
         Assert.Equal("trace-via-frontend", json.GetProperty("traceId").GetString());
         Assert.Equal("span-via-frontend", json.GetProperty("spanId").GetString());
     }
+
+    [Fact]
+    public async Task ListAndClassProperties_GlobalGrpcPropagation_InjectsToStringMetadata_ButDoesNotExtractTypedContext()
+    {
+        await using var cluster = await GrpcTestCluster.CreateAsync();
+
+        var json = await cluster.GetRelayComplexJsonAsync();
+
+        var tagsHeader = json.GetProperty("tagsHeader").GetString();
+        Assert.NotNull(tagsHeader);
+        Assert.Contains("List", tagsHeader, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("payload-1", json.GetProperty("payloadHeader").GetString());
+
+        Assert.False(json.GetProperty("hasListContext").GetBoolean());
+        Assert.False(json.GetProperty("hasClassContext").GetBoolean());
+    }
 }

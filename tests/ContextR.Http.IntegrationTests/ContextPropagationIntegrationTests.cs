@@ -284,6 +284,34 @@ public sealed class ContextPropagationIntegrationTests
         Assert.Equal(region, propagated.GetProperty("X-Region").GetString());
     }
 
+    [Fact]
+    public async Task ListProperty_GlobalHttpPropagation_InjectsToStringHeader_ButDoesNotExtract()
+    {
+        await using var app = await CreateWithComplexPropertyPropagationAsync();
+
+        var extracted = await app.GetJsonAsync("/context/list", ("X-Tags", "a,b"));
+        Assert.False(extracted.GetProperty("hasContext").GetBoolean());
+
+        var propagated = await app.GetJsonAsync("/propagate/list/manual");
+        var headers = propagated.GetProperty("propagatedHeaders");
+        var listHeader = headers.GetProperty("X-Tags").GetString();
+        Assert.NotNull(listHeader);
+        Assert.Contains("List", listHeader, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ClassProperty_GlobalHttpPropagation_InjectsToStringHeader_ButDoesNotExtract()
+    {
+        await using var app = await CreateWithComplexPropertyPropagationAsync();
+
+        var extracted = await app.GetJsonAsync("/context/class", ("X-Payload", "payload-1"));
+        Assert.False(extracted.GetProperty("hasContext").GetBoolean());
+
+        var propagated = await app.GetJsonAsync("/propagate/class/manual");
+        var headers = propagated.GetProperty("propagatedHeaders");
+        Assert.Equal("payload-1", headers.GetProperty("X-Payload").GetString());
+    }
+
     // ──────────────────────────────────────────────────────────────
     //  Server Factory Methods
     // ──────────────────────────────────────────────────────────────
@@ -357,6 +385,27 @@ public sealed class ContextPropagationIntegrationTests
                        .MapProperty(c => c.SpanId, "X-Span-Id")
                        .UseAspNetCore()
                        .UseGlobalHttpPropagation()));
+            });
+
+            RegisterCaptureClients(builder.Services, "backend");
+        });
+    }
+
+    private static Task<TestApp> CreateWithComplexPropertyPropagationAsync()
+    {
+        return TestApp.CreateAsync(builder =>
+        {
+            builder.Services.AddContextR(ctx =>
+            {
+                ctx.Add<ListPropagationContext>(reg => reg
+                    .MapProperty(c => c.Tags, "X-Tags")
+                    .UseAspNetCore()
+                    .UseGlobalHttpPropagation());
+
+                ctx.Add<ClassPropagationContext>(reg => reg
+                    .MapProperty(c => c.Payload, "X-Payload")
+                    .UseAspNetCore()
+                    .UseGlobalHttpPropagation());
             });
 
             RegisterCaptureClients(builder.Services, "backend");

@@ -16,4 +16,8 @@ message ProbeReply {
   string message = 1;
   string traceId = 2;
   string spanId = 3;
+  string tagsHeader = 4;
+  string payloadHeader = 5;
+  bool hasListContext = 6;
+  bool hasClassContext = 7;
 }

@@ -44,6 +44,13 @@ internal sealed class GrpcTestCluster : IAsyncDisposable
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
+    public async Task<JsonElement> GetRelayComplexJsonAsync()
+    {
+        using var response = await _frontendClient.GetAsync("/relay/complex");
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<JsonElement>();
+    }
+
     public GrpcProbe.GrpcProbeClient CreateBackendDirectClient()
     {
         var channel = GrpcChannel.ForAddress(
@@ -69,12 +76,25 @@ internal sealed class GrpcTestCluster : IAsyncDisposable
         builder.WebHost.UseTestServer();
         builder.Logging.ClearProviders();
 
-        builder.Services.AddContextR(ctx => ctx.Add<CorrelationContext>(reg => reg
-            .MapProperty(c => c.TraceId, "x-trace-id")
-            .MapProperty(c => c.SpanId, "x-span-id")));
+        builder.Services.AddContextR(ctx =>
+        {
+            ctx.Add<CorrelationContext>(reg => reg
+                .MapProperty(c => c.TraceId, "x-trace-id")
+                .MapProperty(c => c.SpanId, "x-span-id"));
+
+            ctx.Add<ListPropagationContext>(reg => reg
+                .MapProperty(c => c.Tags, "x-tags"));
+
+            ctx.Add<ClassPropagationContext>(reg => reg
+                .MapProperty(c => c.Payload, "x-payload"));
+        });
 
         builder.Services.AddGrpc(options =>
-            options.Interceptors.Add<ContextInterceptor<CorrelationContext>>());
+        {
+            options.Interceptors.Add<ContextInterceptor<CorrelationContext>>();
+            options.Interceptors.Add<ContextInterceptor<ListPropagationContext>>();
+            options.Interceptors.Add<ContextInterceptor<ClassPropagationContext>>();
+        });
 
         var app = builder.Build();
         app.MapGrpcService<GrpcProbeService>();
@@ -88,10 +108,21 @@ internal sealed class GrpcTestCluster : IAsyncDisposable
         builder.WebHost.UseTestServer();
         builder.Logging.ClearProviders();
 
-        builder.Services.AddContextR(ctx => ctx.Add<CorrelationContext>(reg => reg
-            .MapProperty(c => c.TraceId, "x-trace-id")
-            .MapProperty(c => c.SpanId, "x-span-id")
-            .UseGlobalGrpcPropagation()));
+        builder.Services.AddContextR(ctx =>
+        {
+            ctx.Add<CorrelationContext>(reg => reg
+                .MapProperty(c => c.TraceId, "x-trace-id")
+                .MapProperty(c => c.SpanId, "x-span-id")
+                .UseGlobalGrpcPropagation());
+
+            ctx.Add<ListPropagationContext>(reg => reg
+                .MapProperty(c => c.Tags, "x-tags")
+                .UseGlobalGrpcPropagation());
+
+            ctx.Add<ClassPropagationContext>(reg => reg
+                .MapProperty(c => c.Payload, "x-payload")
+                .UseGlobalGrpcPropagation());
+        });
 
         builder.Services.AddGrpcClient<GrpcProbe.GrpcProbeClient>(options =>
         {
@@ -111,6 +142,8 @@ internal sealed class GrpcTestCluster : IAsyncDisposable
         {
             // Reset ambient context for deterministic request-level behavior in tests.
             writer.SetContext<CorrelationContext>(null);
+            writer.SetContext<ListPropagationContext>(null);
+            writer.SetContext<ClassPropagationContext>(null);
 
             var trace = http.Request.Headers["x-trace-id"].FirstOrDefault();
             var span = http.Request.Headers["x-span-id"].FirstOrDefault();
@@ -124,6 +157,19 @@ internal sealed class GrpcTestCluster : IAsyncDisposable
             }
 
             var reply = await client.EchoAsync(new ProbeRequest { Message = "relay" });
+            return Results.Json(reply);
+        });
+
+        app.MapGet("/relay/complex", async (IContextWriter writer, GrpcProbe.GrpcProbeClient client) =>
+        {
+            writer.SetContext<CorrelationContext>(null);
+            writer.SetContext(new ListPropagationContext { Tags = ["a", "b"] });
+            writer.SetContext(new ClassPropagationContext
+            {
+                Payload = new PayloadValue { Code = "payload-1" }
+            });
+
+            var reply = await client.EchoAsync(new ProbeRequest { Message = "relay-complex" });
             return Results.Json(reply);
         });
     }

@@ -119,6 +119,56 @@ public sealed class PropertyMappingValidationTests
     }
 
     [Fact]
+    public void TrySetValue_ReturnsFalse_ForArrayProperty()
+    {
+        var mapping = PropertyMapping.Create<ArrayContext, string[]>(c => c.Tags, "X-Tags");
+
+        var context = new ArrayContext();
+        var result = mapping.TrySetValue(context, "a,b,c");
+
+        Assert.False(result);
+        Assert.Empty(context.Tags);
+    }
+
+    [Fact]
+    public void TrySetValue_ReturnsFalse_ForListProperty()
+    {
+        var mapping = PropertyMapping.Create<ListContext, List<string>>(c => c.Tags, "X-Tags");
+
+        var context = new ListContext();
+        var result = mapping.TrySetValue(context, "a,b,c");
+
+        Assert.False(result);
+        Assert.Empty(context.Tags);
+    }
+
+    [Fact]
+    public void TrySetValue_ReturnsFalse_ForCustomClassProperty()
+    {
+        var mapping = PropertyMapping.Create<CustomClassContext, UserInfo?>(c => c.User, "X-User");
+
+        var context = new CustomClassContext();
+        var result = mapping.TrySetValue(context, "alice");
+
+        Assert.False(result);
+        Assert.Null(context.User);
+    }
+
+    [Fact]
+    public void GetValue_UsesToString_ForCustomClassProperty()
+    {
+        var mapping = PropertyMapping.Create<CustomClassContext, UserInfo?>(c => c.User, "X-User");
+        var context = new CustomClassContext
+        {
+            User = new UserInfo { Name = "alice" }
+        };
+
+        var value = mapping.GetValue(context);
+
+        Assert.Equal("alice", value);
+    }
+
+    [Fact]
     public void Key_ReturnsConfiguredKey()
     {
         var mapping = PropertyMapping.Create<TestContext, string?>(c => c.TenantId, "X-Custom-Key");
@@ -144,6 +194,28 @@ public sealed class PropertyMappingValidationTests
     public class CharContext
     {
         public char Letter { get; set; }
+    }
+
+    public class ArrayContext
+    {
+        public string[] Tags { get; set; } = [];
+    }
+
+    public class ListContext
+    {
+        public List<string> Tags { get; set; } = [];
+    }
+
+    public class CustomClassContext
+    {
+        public UserInfo? User { get; set; }
+    }
+
+    public class UserInfo
+    {
+        public string Name { get; set; } = string.Empty;
+
+        public override string ToString() => Name;
     }
 
     public class FieldContext

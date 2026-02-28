@@ -148,6 +148,48 @@ internal sealed class TestApp : IAsyncDisposable
                 PropagatedHeaders = outgoing
             });
         });
+
+        app.MapGet("/context/list", (IContextAccessor accessor) =>
+        {
+            var ctx = accessor.GetContext<ListPropagationContext>();
+            return Results.Json(new
+            {
+                HasContext = ctx is not null,
+                TagCount = ctx?.Tags?.Count
+            });
+        });
+
+        app.MapGet("/context/class", (IContextAccessor accessor) =>
+        {
+            var ctx = accessor.GetContext<ClassPropagationContext>();
+            return Results.Json(new
+            {
+                HasContext = ctx is not null,
+                PayloadCode = ctx?.Payload?.Code
+            });
+        });
+
+        app.MapGet("/propagate/list/manual", async (IContextWriter writer, IHttpClientFactory factory) =>
+        {
+            writer.SetContext(new ListPropagationContext { Tags = ["a", "b"] });
+            using var client = factory.CreateClient("backend");
+            using var resp = await client.GetAsync("/probe");
+            var outgoing = await resp.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+            return Results.Json(new { PropagatedHeaders = outgoing });
+        });
+
+        app.MapGet("/propagate/class/manual", async (IContextWriter writer, IHttpClientFactory factory) =>
+        {
+            writer.SetContext(new ClassPropagationContext
+            {
+                Payload = new PayloadValue { Code = "payload-1" }
+            });
+
+            using var client = factory.CreateClient("backend");
+            using var resp = await client.GetAsync("/probe");
+            var outgoing = await resp.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+            return Results.Json(new { PropagatedHeaders = outgoing });
+        });
     }
 }
 
@@ -161,4 +203,21 @@ public class TenantContext
 {
     public string? TenantId { get; set; }
     public string? Region { get; set; }
+}
+
+public class ListPropagationContext
+{
+    public List<string>? Tags { get; set; }
+}
+
+public class ClassPropagationContext
+{
+    public PayloadValue? Payload { get; set; }
+}
+
+public class PayloadValue
+{
+    public string Code { get; set; } = string.Empty;
+
+    public override string ToString() => Code;
 }
