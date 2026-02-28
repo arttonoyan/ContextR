@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -9,11 +8,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
@@ -23,9 +29,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\ContextR\ContextR.csproj" />
     <ProjectReference Include="..\..\src\ContextR.Propagation\ContextR.Propagation.csproj" />
     <ProjectReference Include="..\..\src\ContextR.Propagation.Mapping\ContextR.Propagation.Mapping.csproj" />
     <ProjectReference Include="..\..\src\ContextR.Propagation.InlineJson\ContextR.Propagation.InlineJson.csproj" />
+    <ProjectReference Include="..\..\src\ContextR.Propagation.Token\ContextR.Propagation.Token.csproj" />
+    <ProjectReference Include="..\..\src\ContextR.Transport.Http\ContextR.Transport.Http.csproj" />
+    <ProjectReference Include="..\..\src\ContextR.Hosting.AspNetCore\ContextR.Hosting.AspNetCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -33,6 +43,8 @@
     <Using Include="ContextR.Propagation" />
     <Using Include="ContextR.Propagation.Mapping" />
     <Using Include="ContextR.Propagation.InlineJson" />
+    <Using Include="ContextR.Transport.Http" />
+    <Using Include="ContextR.Hosting.AspNetCore" />
   </ItemGroup>
 
 </Project>

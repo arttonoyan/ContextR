@@ -39,7 +39,11 @@ public static class ContextRPropagationExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
         builder.Services.AddSingleton<IPropertyMapping<TContext>>(
-            _ => PropertyMapping.Create(property, key));
+            sp => PropertyMapping.Create(
+                property,
+                key,
+                sp.GetService<IContextPayloadSerializer<TContext>>(),
+                sp.GetService<IContextTransportPolicy<TContext>>()));
 
         builder.Services.TryAddSingleton<IContextPropagator<TContext>>(sp =>
             new MappingContextPropagator<TContext>(sp.GetServices<IPropertyMapping<TContext>>()));

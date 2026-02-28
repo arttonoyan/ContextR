@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ContextR.Propagation.InlineJson</AssemblyName>
+    <RootNamespace>ContextR.Propagation.InlineJson</RootNamespace>
+    <PackageId>ContextR.Propagation.InlineJson</PackageId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ContextR.Propagation\ContextR.Propagation.csproj" />
+  </ItemGroup>
+</Project>

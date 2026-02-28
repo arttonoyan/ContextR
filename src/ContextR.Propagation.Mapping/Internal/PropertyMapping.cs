@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text;
+using ContextR.Propagation;
 
 namespace ContextR.Propagation.Internal;
 
@@ -8,7 +10,9 @@ internal static class PropertyMapping
 {
     public static IPropertyMapping<TContext> Create<TContext, TProperty>(
         Expression<Func<TContext, TProperty>> propertyExpression,
-        string key)
+        string key,
+        IContextPayloadSerializer<TContext>? payloadSerializer = null,
+        IContextTransportPolicy<TContext>? transportPolicy = null)
         where TContext : class
     {
         var member = propertyExpression.Body as MemberExpression
@@ -31,7 +35,7 @@ internal static class PropertyMapping
             Expression.Assign(Expression.Property(setterParam, propertyInfo), valueParam),
             setterParam, valueParam).Compile();
 
-        return new PropertyMapping<TContext, TProperty>(key, getter, setter);
+        return new PropertyMapping<TContext, TProperty>(key, getter, setter, payloadSerializer, transportPolicy);
     }
 }
 
@@ -40,12 +44,21 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
 {
     private readonly Func<TContext, TProperty> _getter;
     private readonly Action<TContext, TProperty> _setter;
+    private readonly IContextPayloadSerializer<TContext>? _payloadSerializer;
+    private readonly IContextTransportPolicy<TContext>? _transportPolicy;
 
-    public PropertyMapping(string key, Func<TContext, TProperty> getter, Action<TContext, TProperty> setter)
+    public PropertyMapping(
+        string key,
+        Func<TContext, TProperty> getter,
+        Action<TContext, TProperty> setter,
+        IContextPayloadSerializer<TContext>? payloadSerializer,
+        IContextTransportPolicy<TContext>? transportPolicy)
     {
         Key = key;
         _getter = getter;
         _setter = setter;
+        _payloadSerializer = payloadSerializer;
+        _transportPolicy = transportPolicy;
     }
 
     public string Key { get; }
@@ -53,13 +66,55 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
     public string? GetValue(TContext context)
     {
         var value = _getter(context);
-        return value?.ToString();
+        if (value is null)
+            return null;
+
+        if (CanUseCustomSerializer())
+        {
+            var serialized = _payloadSerializer!.Serialize(value, typeof(TProperty));
+            if (!IsWithinLimit(serialized, out var payloadSize))
+            {
+                return HandleOversizeOnInject(payloadSize);
+            }
+
+            return serialized;
+        }
+
+        return value.ToString();
     }
 
     public bool TrySetValue(TContext context, string value)
     {
         try
         {
+            if (CanUseCustomSerializer())
+            {
+                if (!IsWithinLimit(value, out var payloadSize))
+                    return HandleOversizeOnExtract(payloadSize);
+
+                if (!_payloadSerializer!.TryDeserialize(value, typeof(TProperty), out var parsedValue))
+                    return false;
+
+                if (parsedValue is null)
+                {
+                    if (default(TProperty) is null)
+                    {
+                        _setter(context, default!);
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                if (parsedValue is TProperty typed)
+                {
+                    _setter(context, typed);
+                    return true;
+                }
+
+                return false;
+            }
+
             if (!TryParse(value, out var parsed))
                 return false;
 
@@ -70,6 +125,50 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
         {
             return false;
         }
+    }
+
+    private bool CanUseCustomSerializer()
+    {
+        return _payloadSerializer is not null && _payloadSerializer.CanHandle(typeof(TProperty));
+    }
+
+    private bool IsWithinLimit(string payload, out int payloadSize)
+    {
+        payloadSize = Encoding.UTF8.GetByteCount(payload);
+        var maxPayloadBytes = _transportPolicy?.MaxPayloadBytes ?? 0;
+        return maxPayloadBytes <= 0 || payloadSize <= maxPayloadBytes;
+    }
+
+    private string? HandleOversizeOnInject(int payloadSize)
+    {
+        if (_transportPolicy is null)
+            return null;
+
+        return _transportPolicy.OversizeBehavior switch
+        {
+            ContextOversizeBehavior.SkipProperty => null,
+            ContextOversizeBehavior.FailFast => throw new InvalidOperationException(
+                $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {_transportPolicy.MaxPayloadBytes} bytes)."),
+            ContextOversizeBehavior.FallbackToToken => throw new InvalidOperationException(
+                $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {_transportPolicy.MaxPayloadBytes} bytes) and requested token fallback, but no token strategy is configured."),
+            _ => throw new InvalidOperationException("Unsupported oversize behavior.")
+        };
+    }
+
+    private bool HandleOversizeOnExtract(int payloadSize)
+    {
+        if (_transportPolicy is null)
+            return false;
+
+        return _transportPolicy.OversizeBehavior switch
+        {
+            ContextOversizeBehavior.SkipProperty => false,
+            ContextOversizeBehavior.FailFast => throw new InvalidOperationException(
+                $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {_transportPolicy.MaxPayloadBytes} bytes)."),
+            ContextOversizeBehavior.FallbackToToken => throw new InvalidOperationException(
+                $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {_transportPolicy.MaxPayloadBytes} bytes) and requested token fallback, but no token strategy is configured."),
+            _ => throw new InvalidOperationException("Unsupported oversize behavior.")
+        };
     }
 
     private static bool TryParse(string value, [NotNullWhen(true)] out TProperty? result)

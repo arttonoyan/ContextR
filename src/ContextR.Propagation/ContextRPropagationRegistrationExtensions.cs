@@ -23,4 +23,30 @@ public static class ContextRPropagationRegistrationExtensions
         builder.Services.TryAddSingleton<IContextPropagator<TContext>, TPropagator>();
         return builder;
     }
+
+    /// <summary>
+    /// Registers a payload serializer strategy for mapped properties of <typeparamref name="TContext"/>.
+    /// </summary>
+    public static IContextRegistrationBuilder<TContext> UsePayloadSerializer<TContext, TSerializer>(
+        this IContextRegistrationBuilder<TContext> builder)
+        where TContext : class
+        where TSerializer : class, IContextPayloadSerializer<TContext>
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Services.TryAddSingleton<IContextPayloadSerializer<TContext>, TSerializer>();
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers a transport policy strategy for mapped properties of <typeparamref name="TContext"/>.
+    /// </summary>
+    public static IContextRegistrationBuilder<TContext> UseTransportPolicy<TContext, TPolicy>(
+        this IContextRegistrationBuilder<TContext> builder)
+        where TContext : class
+        where TPolicy : class, IContextTransportPolicy<TContext>
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Services.TryAddSingleton<IContextTransportPolicy<TContext>, TPolicy>();
+        return builder;
+    }
 }
