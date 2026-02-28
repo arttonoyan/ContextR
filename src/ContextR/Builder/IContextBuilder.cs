@@ -37,4 +37,13 @@ public interface IContextBuilder
     /// <param name="configure">A callback to configure the <see cref="ContextDomainPolicy"/>.</param>
     /// <returns>The same builder for fluent chaining.</returns>
     IContextBuilder AddDomainPolicy(Action<ContextDomainPolicy> configure);
+
+    /// <summary>
+    /// Configures the default domain selector used by parameterless context operations.
+    /// </summary>
+    /// <param name="defaultDomainSelector">
+    /// A runtime selector that returns the default domain for the current request scope.
+    /// </param>
+    /// <returns>The same builder for fluent chaining.</returns>
+    IContextBuilder AddDomainPolicy(Func<IServiceProvider, string?> defaultDomainSelector);
 }

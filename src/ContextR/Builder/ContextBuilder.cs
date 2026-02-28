@@ -47,6 +47,14 @@ internal sealed class ContextBuilder : IContextBuilder
         return this;
     }
 
+    public IContextBuilder AddDomainPolicy(Func<IServiceProvider, string?> defaultDomainSelector)
+    {
+        ArgumentNullException.ThrowIfNull(defaultDomainSelector);
+
+        DomainPolicy.DefaultDomainSelector = defaultDomainSelector;
+        return this;
+    }
+
     internal void Validate()
     {
         if (_hasDomainRegistrations && !_hasDefaultRegistrations && DomainPolicy.DefaultDomainSelector is null)
@@ -55,7 +63,7 @@ internal sealed class ContextBuilder : IContextBuilder
                 "Domain registrations were configured but no default (domainless) registration exists " +
                 "and no DefaultDomainSelector was provided via AddDomainPolicy. " +
                 "Either call Add<TContext>() at the root level to register a default, " +
-                "or configure AddDomainPolicy(p => p.DefaultDomainSelector = ...) to select a default domain.");
+                "or configure AddDomainPolicy(sp => ...) to select a default domain.");
         }
     }
 }

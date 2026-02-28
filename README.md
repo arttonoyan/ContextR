@@ -255,7 +255,7 @@ If your application should route parameterless calls to a specific domain, confi
 builder.Services.AddContextR(ctx =>
 {
     ctx.AddDomain("web-api", d => d.Add<UserContext>());
-    ctx.AddDomainPolicy(p => p.DefaultDomainSelector = sp =>
+    ctx.AddDomainPolicy(sp =>
     {
         // Resolve the default domain at runtime from IServiceProvider
         return sp.GetRequiredService<ITenantResolver>().CurrentDomain;

@@ -88,7 +88,7 @@ public sealed class DomainScopedContextTests
         services.AddContextR(builder =>
         {
             builder.AddDomain("web-api", domain => domain.Add<UserContext>());
-            builder.AddDomainPolicy(p => p.DefaultDomainSelector = sp => sp.GetRequiredService<string>());
+            builder.AddDomainPolicy(sp => sp.GetRequiredService<string>());
         });
 
         using var provider = services.BuildServiceProvider();
@@ -98,6 +98,19 @@ public sealed class DomainScopedContextTests
         writer.SetContext(new UserContext("resolved-via-sp"));
 
         Assert.Equal("resolved-via-sp", accessor.GetContext<UserContext>("web-api")?.UserId);
+    }
+
+    [Fact]
+    public void AddDomainPolicySelector_Throws_WhenSelectorIsNull()
+    {
+        var services = new ServiceCollection();
+
+        Assert.Throws<ArgumentNullException>(() =>
+            services.AddContextR(builder =>
+            {
+                builder.Add<UserContext>();
+                builder.AddDomainPolicy((Func<IServiceProvider, string?>)null!);
+            }));
     }
 
     [Fact]
