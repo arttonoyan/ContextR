@@ -436,6 +436,19 @@ ctx.Add<CorrelationContext>(reg => reg
 
 Supported property types: `string`, any type implementing `IParsable<T>` (all numeric types, `Guid`, `DateTime`, etc.), and types convertible via `Convert.ChangeType`.
 
+### Advanced mapping DSL (required/optional)
+
+For stricter contracts, use the mapping DSL:
+
+```csharp
+ctx.Add<CorrelationContext>(reg => reg
+    .Map(m => m
+        .Property(c => c.TraceId, "X-Trace-Id").Required()
+        .Property(c => c.SpanId, "X-Span-Id").Optional()));
+```
+
+`Required()` means missing or invalid value fails propagation by default; `Optional()` skips missing/invalid values.
+
 ### Complex payload strategy (List/array/custom class)
 
 For non-primitive mapped properties, you can opt into inline JSON payloads with deterministic size policy:
@@ -461,6 +474,25 @@ builder.Services.AddContextR(ctx =>
 - `FailFast` -- throw deterministic exception when mapped payload exceeds size limit
 - `SkipProperty` -- skip only the oversize mapped property and continue other mappings
 - `FallbackToToken` -- reserved for token/reference strategy; fails deterministically until token runtime is wired
+
+### Propagation failure handling
+
+You can hook failures (required missing, parse issues, oversize, token-fallback unavailable) and choose behavior:
+
+```csharp
+ctx.Add<RequestContext>(reg => reg
+    .OnPropagationFailure<RequestContext>(failure =>
+    {
+        logger.LogWarning(
+            "Propagation failure: {Reason} key={Key} dir={Direction}",
+            failure.Reason, failure.Key, failure.Direction);
+
+        return PropagationFailureAction.SkipProperty;
+    })
+    .Map(m => m
+        .Property(c => c.TraceId, "X-Trace-Id").Required()
+        .Property(c => c.Payload, "X-Payload").Optional()));
+```
 
 ### Custom propagator
 
@@ -553,7 +585,7 @@ Each domain's middleware and handler operate on their own isolated context slot.
 | Package | Description | Status |
 |---|---|---|
 | `ContextR` | Core library -- storage, snapshots, scopes, and domains | Available |
-| `ContextR.Propagation` | Propagation contracts + runtime registration extensions (`IContextPropagator<T>`, `UsePropagator`) | Available |
+| `ContextR.Propagation` | Propagation contracts + runtime registration extensions (`IContextPropagator<T>`, `UsePropagator`, payload/failure policy hooks) | Available |
 | `ContextR.Propagation.Mapping` | `MapProperty` fluent API for auto-generating propagators from property mappings | Available |
 | `ContextR.Propagation.InlineJson` | Strategy package for JSON serialization of non-primitive mapped properties with size policy | Available |
 | `ContextR.Propagation.Token` | Token/reference contracts for large payload transport (`IContextPayloadStore`, token codec) | Available |

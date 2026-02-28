@@ -1,5 +1,3 @@
-using ContextR.Propagation;
-
 namespace ContextR.Propagation.Internal;
 
 internal sealed class MappingContextPropagator<TContext> : IContextPropagator<TContext>

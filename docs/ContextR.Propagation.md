@@ -1,6 +1,6 @@
 # ContextR.Propagation.Mapping
 
-Property-based context propagation for ContextR. This package provides a fluent `MapProperty` API that auto-generates `IContextPropagator<T>` implementations from property-to-key mappings -- no boilerplate serialization code required.
+Property-based context propagation for ContextR. This package provides fluent mapping APIs that auto-generate `IContextPropagator<T>` implementations from property-to-key mappings -- no boilerplate serialization code required.
 
 ## When to use this package
 
@@ -34,6 +34,18 @@ public class CorrelationContext
 ```
 
 Each `MapProperty` call tells the framework: "when injecting this context into a transport carrier, write property `TraceId` under key `X-Trace-Id`; when extracting, read key `X-Trace-Id` and set it back on `TraceId`."
+
+### Advanced DSL with required/optional
+
+```csharp
+ctx.Add<CorrelationContext>(reg => reg
+    .Map(m => m
+        .Property(c => c.TraceId, "X-Trace-Id").Required()
+        .Property(c => c.SpanId, "X-Span-Id").Optional()));
+```
+
+- `Required()` means missing/invalid values fail by default.
+- `Optional()` means missing/invalid values are ignored.
 
 ## How it works
 
@@ -113,6 +125,28 @@ Available abstractions:
 
 For production-ready non-primitive support, prefer the dedicated `ContextR.Propagation.InlineJson` package.
 
+## Failure handling extensions
+
+`ContextR.Propagation` also exposes failure handling hooks:
+
+```csharp
+ctx.Add<CorrelationContext>(reg => reg
+    .OnPropagationFailure<CorrelationContext>(failure =>
+    {
+        // log/metrics/alerts here
+        return PropagationFailureAction.SkipProperty;
+    })
+    .Map(m => m.Property(c => c.TraceId, "X-Trace-Id").Required()));
+```
+
+Available contracts:
+
+- `IContextPropagationFailureHandler<TContext>`
+- `PropagationFailureContext`
+- `PropagationFailureReason`
+- `PropagationFailureAction` (`Throw`, `SkipProperty`, `SkipContext`)
+- `PropagationDirection` (`Inject`, `Extract`)
+
 ### Examples
 
 ```csharp
@@ -172,6 +206,11 @@ ctx.Add<CorrelationContext>(reg => reg
 ```
 
 In practice, pick one approach per context type and stick with it.
+
+## MapProperty vs Map DSL
+
+- Use `MapProperty(...)` for quick, straightforward mappings.
+- Use `Map(...)` DSL when you need per-property requirement (`Required`/`Optional`) and richer policy-driven configuration.
 
 ## Custom propagator with other mapping libraries
 
@@ -249,7 +288,8 @@ Internal `IContextPropagator<TContext>` implementation. Collects all `IPropertyM
 
 | File | Role |
 |---|---|
-| `ContextRPropagationExtensions.cs` | `MapProperty` extension method on `IContextRegistrationBuilder<T>` |
+| `ContextRPropagationExtensions.cs` | `MapProperty` + `Map` DSL entry points on `IContextRegistrationBuilder<T>` |
+| `MappingDslBuilders.cs` | DSL builders (`ContextMapBuilder`, `ContextMapPropertyBuilder`, `PropertyRequirement`) |
 | `Internal/IPropertyMapping.cs` | Internal interface for single property mapping |
 | `Internal/PropertyMapping.cs` | Expression-compiled property accessor and parser |
 | `Internal/MappingContextPropagator.cs` | `IContextPropagator<T>` implementation that delegates to property mappings |

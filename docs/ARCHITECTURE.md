@@ -546,17 +546,20 @@ sequenceDiagram
 | File | Role |
 |------|------|
 | `IContextPropagator.cs` | Transport-agnostic serialization/deserialization interface using carrier pattern |
-| `ContextRPropagationRegistrationExtensions.cs` | `UsePropagator<TContext, TPropagator>()` registration extension |
+| `ContextRPropagationRegistrationExtensions.cs` | Registration extensions for `UsePropagator`, payload strategy, and failure handling |
 | `ContextPayloadContracts.cs` | Payload strategy abstractions: `IContextPayloadSerializer<T>`, `IContextTransportPolicy<T>`, `ContextOversizeBehavior` |
+| `PropagationFailureContracts.cs` | Failure handling abstractions: `IContextPropagationFailureHandler<T>`, `PropagationFailureContext`, reason/action enums |
 
 ### ContextR.Propagation.Mapping
 
 | File | Role |
 |------|------|
-| `ContextRPropagationExtensions.cs` | `MapProperty()` extension method. Registers `IPropertyMapping<T>` and `MappingContextPropagator<T>` into DI. |
+| `ContextRPropagationExtensions.cs` | `MapProperty()` and `Map(...)` DSL entry points. Registers `IPropertyMapping<T>` and `MappingContextPropagator<T>` into DI. |
+| `MappingDslBuilders.cs` | DSL builders + `PropertyRequirement` (`Required`/`Optional`) |
 | `Internal/IPropertyMapping.cs` | Internal interface: `Key`, `GetValue`, `TrySetValue` |
 | `Internal/PropertyMapping.cs` | Expression-compiled property accessor. Uses optional payload serializer/policy from DI; falls back to legacy `IParsable`/`Convert.ChangeType` behavior when strategy is not configured. |
 | `Internal/MappingContextPropagator.cs` | `IContextPropagator<T>` that delegates `Inject`/`Extract` to collected `IPropertyMapping<T>` instances. |
+| `Internal/PropertyMappingException.cs` | Internal exception carrying categorized failure reason for policy handling |
 
 ### ContextR.Propagation.InlineJson
 

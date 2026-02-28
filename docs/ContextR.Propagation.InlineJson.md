@@ -34,6 +34,19 @@ builder.Services.AddContextR(ctx =>
 - `SkipProperty` -- skips only the oversize property; other mapped properties continue.
 - `FallbackToToken` -- signals token fallback intent; currently throws deterministic error if token strategy runtime is not configured.
 
+You can override this default behavior via propagation failure handler:
+
+```csharp
+ctx.Add<RequestContext>(reg => reg
+    .OnPropagationFailure<RequestContext>(_ => PropagationFailureAction.SkipProperty)
+    .UseInlineJsonPayloads<RequestContext>(o =>
+    {
+        o.MaxPayloadBytes = 2048;
+        o.OversizeBehavior = ContextOversizeBehavior.FailFast;
+    })
+    .MapProperty(c => c.Payload, "X-Payload"));
+```
+
 ## What is considered "complex"
 
 `InlineJsonPayloadSerializer<TContext>` handles non-simple types and keeps simple transport types on existing mapping behavior:
