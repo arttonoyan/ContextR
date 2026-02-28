@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option csharp_namespace = "ContextR.Grpc.IntegrationTests.Protos";
+
+package context.probe;
+
+service GrpcProbe {
+  rpc Echo (ProbeRequest) returns (ProbeReply);
+}
+
+message ProbeRequest {
+  string message = 1;
+}
+
+message ProbeReply {
+  string message = 1;
+  string traceId = 2;
+  string spanId = 3;
+}
