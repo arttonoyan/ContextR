@@ -538,3 +538,4 @@ Each domain's middleware and handler operate on their own isolated context slot.
 | [ContextR.Propagation](docs/ContextR.Propagation.md) | Property mapping API, `MappingContextPropagator`, custom propagator integration |
 | [ContextR.Http](docs/ContextR.Http.md) | HTTP client propagation, global vs per-client, domain-aware handler |
 | [ContextR.AspNetCore](docs/ContextR.AspNetCore.md) | ASP.NET Core middleware, `IStartupFilter`, domain-aware extraction |
+| [ContextR.Grpc](docs/ContextR.Grpc.md) | gRPC propagation/extraction, client/server interceptors, domain-aware behavior |
