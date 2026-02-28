@@ -1,18 +1,18 @@
-# ContextR.Grpc
+# ContextR.Transport.Grpc
 
 gRPC context propagation for ContextR. This package provides interceptors and helper extensions to propagate ambient context through gRPC metadata on the client side and extract it on the server side.
 
 ## When to use this package
 
-Use `ContextR.Grpc` when your services communicate over gRPC and you want typed context values (correlation IDs, tenant identifiers, feature flags) to flow automatically between caller and callee.
+Use `ContextR.Transport.Grpc` when your services communicate over gRPC and you want typed context values (correlation IDs, tenant identifiers, feature flags) to flow automatically between caller and callee.
 
 ## Install
 
 ```
-dotnet add package ContextR.Grpc
+dotnet add package ContextR.Transport.Grpc
 ```
 
-Dependencies: `ContextR` (core), `Grpc.Core.Api`, `Grpc.Net.ClientFactory`.
+Dependencies: `ContextR` (core), `ContextR.Propagation` (for `IContextPropagator<T>`), `Grpc.Core.Api`, `Grpc.Net.ClientFactory`.
 
 ## Client-side propagation
 

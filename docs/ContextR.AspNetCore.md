@@ -1,18 +1,18 @@
-# ContextR.AspNetCore
+# ContextR.Hosting.AspNetCore
 
 ASP.NET Core middleware for ContextR. This package extracts context from incoming HTTP request headers and writes it into the ambient `AsyncLocal` storage, making it available to all downstream code via `IContextAccessor`, `IContextSnapshot`, and `IContextWriter`.
 
 ## When to use this package
 
-Use `ContextR.AspNetCore` when your ASP.NET Core application receives context values (correlation IDs, tenant identifiers, feature flags) as HTTP headers and you want them available as typed context objects throughout the request pipeline.
+Use `ContextR.Hosting.AspNetCore` when your ASP.NET Core application receives context values (correlation IDs, tenant identifiers, feature flags) as HTTP headers and you want them available as typed context objects throughout the request pipeline.
 
 ## Install
 
 ```
-dotnet add package ContextR.AspNetCore
+dotnet add package ContextR.Hosting.AspNetCore
 ```
 
-Dependencies: `ContextR` (core), `ContextR.Http`, `Microsoft.AspNetCore.App` (framework reference).
+Dependencies: `ContextR` (core), `ContextR.Propagation` (for `IContextPropagator<T>`), `ContextR.Transport.Http`, `Microsoft.AspNetCore.App` (framework reference).
 
 ## Quick start
 

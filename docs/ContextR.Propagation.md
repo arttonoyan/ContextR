@@ -1,20 +1,20 @@
-# ContextR.Propagation
+# ContextR.Propagation.Mapping
 
 Property-based context propagation for ContextR. This package provides a fluent `MapProperty` API that auto-generates `IContextPropagator<T>` implementations from property-to-key mappings -- no boilerplate serialization code required.
 
 ## When to use this package
 
-Use `ContextR.Propagation` when your context classes are simple POCOs with properties that map 1:1 to transport keys (HTTP headers, gRPC metadata, Kafka headers, etc.).
+Use `ContextR.Propagation.Mapping` when your context classes are simple POCOs with properties that map 1:1 to transport keys (HTTP headers, gRPC metadata, Kafka headers, etc.).
 
-For complex serialization logic -- conditional fields, composite values, encrypted payloads -- implement `IContextPropagator<T>` directly and register it with `UsePropagator<T>()` instead.
+For complex serialization logic -- conditional fields, composite values, encrypted payloads -- implement `IContextPropagator<T>` directly and register it with `UsePropagator<TContext, TPropagator>()` instead.
 
 ## Install
 
 ```
-dotnet add package ContextR.Propagation
+dotnet add package ContextR.Propagation.Mapping
 ```
 
-Dependencies: `ContextR` (core).
+Dependencies: `ContextR` (core), `ContextR.Propagation`.
 
 ## Quick start
 
@@ -132,7 +132,7 @@ public class CorrelationContext
 }
 ```
 
-If your context type does not meet these requirements, use `UsePropagator<T>()` with a custom `IContextPropagator<T>` implementation that handles construction and population.
+If your context type does not meet these requirements, use `UsePropagator<TContext, TPropagator>()` with a custom `IContextPropagator<T>` implementation that handles construction and population.
 
 ## MapProperty vs UsePropagator
 
@@ -142,11 +142,11 @@ If your context type does not meet these requirements, use `UsePropagator<T>()` 
 // MapProperty wins -- registers IContextPropagator<T> as MappingContextPropagator
 ctx.Add<CorrelationContext>(reg => reg
     .MapProperty(c => c.TraceId, "X-Trace-Id")
-    .UsePropagator<CustomPropagator>());  // no-op, MappingContextPropagator already registered
+    .UsePropagator<CorrelationContext, CustomPropagator>());  // no-op, MappingContextPropagator already registered
 
 // UsePropagator wins -- registers IContextPropagator<T> as CustomPropagator
 ctx.Add<CorrelationContext>(reg => reg
-    .UsePropagator<CustomPropagator>()
+    .UsePropagator<CorrelationContext, CustomPropagator>()
     .MapProperty(c => c.TraceId, "X-Trace-Id"));  // adds mapping, but propagator is CustomPropagator
 ```
 
@@ -154,7 +154,7 @@ In practice, pick one approach per context type and stick with it.
 
 ## Custom propagator with other mapping libraries
 
-`UsePropagator<T>()` is the extension point for integrating any serialization strategy. For example, with AutoMapper:
+`UsePropagator<TContext, TPropagator>()` is the extension point for integrating any serialization strategy. For example, with AutoMapper:
 
 ```csharp
 public class AutoMapperPropagator<TContext> : IContextPropagator<TContext>
@@ -191,7 +191,7 @@ Register with:
 
 ```csharp
 ctx.Add<CorrelationContext>(reg => reg
-    .UsePropagator<AutoMapperPropagator<CorrelationContext>>());
+    .UsePropagator<CorrelationContext, AutoMapperPropagator<CorrelationContext>>());
 ```
 
 ## Guard clauses

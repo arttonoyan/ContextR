@@ -430,7 +430,7 @@ graph LR
 
 ## Propagator architecture
 
-The `IContextPropagator<TContext>` interface is the bridge between ContextR's ambient storage and transport layers (HTTP, gRPC, Kafka, etc.). It lives in the core `ContextR` package because all transport packages depend on it.
+The `IContextPropagator<TContext>` interface is the bridge between ContextR's ambient storage and transport layers (HTTP, gRPC, Kafka, etc.). It lives in `ContextR.Propagation`, and transport packages depend on that package.
 
 ### Carrier pattern
 
@@ -460,7 +460,7 @@ Propagators are registered in DI as singletons. There are two registration paths
 flowchart TD
     A["IContextRegistrationBuilder<T>"] --> B{"Registration path"}
     B -- "MapProperty" --> C["ContextR.Propagation\n registers IPropertyMapping<T>\n+ MappingContextPropagator<T>"]
-    B -- "UsePropagator<P>" --> D["Core ContextR\nregisters P as IContextPropagator<T>"]
+    B -- "UsePropagator<T,P>" --> D["ContextR.Propagation\nregisters P as IContextPropagator<T>"]
 
     C --> E["IContextPropagator<T>\nin DI container"]
     D --> E
@@ -514,10 +514,9 @@ sequenceDiagram
 | `IContextAccessor.cs` | Read interface: `GetContext<T>()`, `GetContext<T>(domain)` |
 | `IContextWriter.cs` | Write interface: `SetContext<T>()`, `SetContext<T>(domain, context)` |
 | `IContextSnapshot.cs` | Snapshot interface: `GetContext<T>()`, `GetContext<T>(domain)`, `BeginScope()` |
-| `IContextPropagator.cs` | Transport-agnostic serialization/deserialization interface using carrier pattern |
 | `IContextBuilder.cs` | Builder interface: `Add<T>()`, `AddDomain()`, `AddDomainPolicy()` |
 | `IDomainContextBuilder.cs` | Domain builder interface: `Add<T>()` |
-| `IContextRegistrationBuilder<T>.cs` | Per-type configuration surface with `UsePropagator<T>()` and extensibility for transport packages |
+| `IContextRegistrationBuilder<T>.cs` | Per-type configuration surface; transport and propagation packages extend it |
 | `ContextDomainPolicy.cs` | Policy class with `DefaultDomainSelector` property |
 
 #### Extensions
@@ -546,12 +545,19 @@ sequenceDiagram
 
 | File | Role |
 |------|------|
+| `IContextPropagator.cs` | Transport-agnostic serialization/deserialization interface using carrier pattern |
+| `ContextRPropagationRegistrationExtensions.cs` | `UsePropagator<TContext, TPropagator>()` registration extension |
+
+### ContextR.Propagation.Mapping
+
+| File | Role |
+|------|------|
 | `ContextRPropagationExtensions.cs` | `MapProperty()` extension method. Registers `IPropertyMapping<T>` and `MappingContextPropagator<T>` into DI. |
 | `Internal/IPropertyMapping.cs` | Internal interface: `Key`, `GetValue`, `TrySetValue` |
 | `Internal/PropertyMapping.cs` | Expression-compiled property accessor. Handles `string`, `IParsable<T>`, and `Convert.ChangeType` parsing. |
 | `Internal/MappingContextPropagator.cs` | `IContextPropagator<T>` that delegates `Inject`/`Extract` to collected `IPropertyMapping<T>` instances. |
 
-### ContextR.Http
+### ContextR.Transport.Http
 
 | File | Role |
 |------|------|
@@ -559,7 +565,7 @@ sequenceDiagram
 | `Extensions/ContextRHttpRegistrationExtensions.cs` | `UseGlobalHttpPropagation()` -- registers handler via `ConfigureHttpClientDefaults`. Captures domain. |
 | `Extensions/ContextRHttpClientBuilderExtensions.cs` | `AddContextRHandler<T>()` -- per-client handler registration on `IHttpClientBuilder`. |
 
-### ContextR.AspNetCore
+### ContextR.Hosting.AspNetCore
 
 | File | Role |
 |------|------|
@@ -567,7 +573,7 @@ sequenceDiagram
 | `Internal/ContextStartupFilter.cs` | `IStartupFilter` that inserts `ContextMiddleware<T>` at the start of the pipeline. Passes domain to middleware. |
 | `Extensions/ContextRAspNetCoreRegistrationExtensions.cs` | `UseAspNetCore()` -- registers `ContextStartupFilter<T>` with captured domain. |
 
-### ContextR.Grpc
+### ContextR.Transport.Grpc
 
 | File | Role |
 |------|------|
@@ -690,11 +696,11 @@ builder.Services.AddContextR(ctx =>
 
 Each type gets its own `AsyncLocal` slot and is included in snapshots automatically.
 
-### Q: Why is `IContextPropagator<T>` in the core package and not in `ContextR.Propagation`?
+### Q: Why is `IContextPropagator<T>` in `ContextR.Propagation`?
 
-Because every transport package (`ContextR.Http`, `ContextR.AspNetCore`, `ContextR.Grpc`) depends on this interface to serialize and deserialize context. Placing it in the core package means transport packages only need a dependency on `ContextR`, not on `ContextR.Propagation`.
+Every transport package (`ContextR.Transport.Http`, `ContextR.Hosting.AspNetCore`, `ContextR.Transport.Grpc`) depends on this interface to serialize and deserialize context. Keeping it in `ContextR.Propagation` keeps `ContextR` core package focused on ambient context primitives and domain/snapshot semantics.
 
-`ContextR.Propagation` provides one *implementation strategy* (`MapProperty` → `MappingContextPropagator`). Users who implement `IContextPropagator<T>` directly and register it with `UsePropagator<T>()` never need the `ContextR.Propagation` package at all.
+`ContextR.Propagation.Mapping` provides one implementation strategy (`MapProperty` → `MappingContextPropagator`). Users who implement `IContextPropagator<T>` directly and register it with `UsePropagator<TContext, TPropagator>()` can use `ContextR.Propagation` without depending on `ContextR.Propagation.Mapping`.
 
 ### Q: Why does `UseGlobalHttpPropagation()` use `ConfigureHttpClientDefaults`?
 

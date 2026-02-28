@@ -1,18 +1,18 @@
-# ContextR.Http
+# ContextR.Transport.Http
 
 HTTP client context propagation for ContextR. This package provides a `DelegatingHandler` that automatically injects ambient context values into outgoing `HttpClient` request headers using the registered `IContextPropagator<T>`.
 
 ## When to use this package
 
-Use `ContextR.Http` when your application makes outgoing HTTP calls via `IHttpClientFactory` and you want context (correlation IDs, tenant info, feature flags) to propagate automatically to downstream services.
+Use `ContextR.Transport.Http` when your application makes outgoing HTTP calls via `IHttpClientFactory` and you want context (correlation IDs, tenant info, feature flags) to propagate automatically to downstream services.
 
 ## Install
 
 ```
-dotnet add package ContextR.Http
+dotnet add package ContextR.Transport.Http
 ```
 
-Dependencies: `ContextR` (core), `Microsoft.Extensions.Http`.
+Dependencies: `ContextR` (core), `ContextR.Propagation` (for `IContextPropagator<T>`), `Microsoft.Extensions.Http`.
 
 ## Two registration modes
 

@@ -392,9 +392,10 @@ ContextR provides transport packages that propagate context across HTTP boundari
 ```
 dotnet add package ContextR
 dotnet add package ContextR.Propagation
-dotnet add package ContextR.Http
-dotnet add package ContextR.AspNetCore
-dotnet add package ContextR.Grpc
+dotnet add package ContextR.Propagation.Mapping
+dotnet add package ContextR.Hosting.AspNetCore
+dotnet add package ContextR.Transport.Http
+dotnet add package ContextR.Transport.Grpc
 ```
 
 ### Full example -- ASP.NET Core API with outgoing HTTP calls
@@ -467,7 +468,7 @@ Register it with `UsePropagator`:
 
 ```csharp
 ctx.Add<CorrelationContext>(reg => reg
-    .UsePropagator<CorrelationPropagator>()
+    .UsePropagator<CorrelationContext, CorrelationPropagator>()
     .UseAspNetCore()
     .UseGlobalHttpPropagation());
 ```
@@ -523,11 +524,12 @@ Each domain's middleware and handler operate on their own isolated context slot.
 
 | Package | Description | Status |
 |---|---|---|
-| `ContextR` | Core library -- storage, snapshots, scopes, domains, `IContextPropagator<T>` interface | Available |
-| `ContextR.Propagation` | `MapProperty` fluent API for auto-generating propagators from property mappings | Available |
-| `ContextR.Http` | `DelegatingHandler` for propagating context to outgoing `HttpClient` requests | Available |
-| `ContextR.AspNetCore` | ASP.NET Core middleware for extracting context from incoming HTTP request headers | Available |
-| `ContextR.Grpc` | gRPC client/server interceptors | Available |
+| `ContextR` | Core library -- storage, snapshots, scopes, and domains | Available |
+| `ContextR.Propagation` | Propagation contracts + runtime registration extensions (`IContextPropagator<T>`, `UsePropagator`) | Available |
+| `ContextR.Propagation.Mapping` | `MapProperty` fluent API for auto-generating propagators from property mappings | Available |
+| `ContextR.Transport.Http` | `DelegatingHandler` for propagating context to outgoing `HttpClient` requests | Available |
+| `ContextR.Hosting.AspNetCore` | ASP.NET Core middleware for extracting context from incoming HTTP request headers | Available |
+| `ContextR.Transport.Grpc` | gRPC client/server interceptors | Available |
 | `ContextR.Kafka` | Kafka producer/consumer context propagation | Planned |
 
 ## Documentation
@@ -536,6 +538,6 @@ Each domain's middleware and handler operate on their own isolated context slot.
 |---|---|
 | [Architecture and Design Decisions](docs/ARCHITECTURE.md) | Internal architecture, storage design, Set vs SetRaw, domain-scoping design, propagator design, DI registration rationale, FAQ |
 | [ContextR.Propagation](docs/ContextR.Propagation.md) | Property mapping API, `MappingContextPropagator`, custom propagator integration |
-| [ContextR.Http](docs/ContextR.Http.md) | HTTP client propagation, global vs per-client, domain-aware handler |
-| [ContextR.AspNetCore](docs/ContextR.AspNetCore.md) | ASP.NET Core middleware, `IStartupFilter`, domain-aware extraction |
-| [ContextR.Grpc](docs/ContextR.Grpc.md) | gRPC propagation/extraction, client/server interceptors, domain-aware behavior |
+| [ContextR.Transport.Http](docs/ContextR.Http.md) | HTTP client propagation, global vs per-client, domain-aware handler |
+| [ContextR.Hosting.AspNetCore](docs/ContextR.AspNetCore.md) | ASP.NET Core middleware, `IStartupFilter`, domain-aware extraction |
+| [ContextR.Transport.Grpc](docs/ContextR.Grpc.md) | gRPC propagation/extraction, client/server interceptors, domain-aware behavior |
