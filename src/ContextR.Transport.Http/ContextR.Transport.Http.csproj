@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ContextR.Transport.Http</AssemblyName>
+    <RootNamespace>ContextR.Transport.Http</RootNamespace>
+    <PackageId>ContextR.Transport.Http</PackageId>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ContextR\ContextR.csproj" />
+    <ProjectReference Include="..\ContextR.Propagation.Abstractions\ContextR.Propagation.Abstractions.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ContextR.Transport.Http.UnitTests" />
+  </ItemGroup>
+</Project>

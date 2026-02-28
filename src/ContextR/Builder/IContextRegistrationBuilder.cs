@@ -1,3 +1,4 @@
+using ContextR.Propagation.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ContextR;

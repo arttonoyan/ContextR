@@ -1,5 +1,5 @@
 using System.Text;
-using ContextR.Grpc;
+using ContextR.Transport.Grpc;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Microsoft.Extensions.DependencyInjection;

@@ -9,11 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
@@ -23,12 +26,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ContextR\ContextR.csproj" />
+    <ProjectReference Include="..\..\src\ContextR.Hosting.AspNetCore\ContextR.Hosting.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\ContextR.Propagation.Mapping\ContextR.Propagation.Mapping.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
     <Using Include="ContextR.Propagation.Abstractions" />
+    <Using Include="ContextR.Propagation.Mapping" />
+    <Using Include="ContextR.Hosting.AspNetCore" />
+    <Using Include="ContextR.Hosting.AspNetCore.Internal" />
   </ItemGroup>
 
 </Project>

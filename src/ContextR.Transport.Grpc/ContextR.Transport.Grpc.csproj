@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ContextR.Transport.Grpc</AssemblyName>
+    <RootNamespace>ContextR.Transport.Grpc</RootNamespace>
+    <PackageId>ContextR.Transport.Grpc</PackageId>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Grpc.Core.Api" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ContextR\ContextR.csproj" />
+    <ProjectReference Include="..\ContextR.Propagation.Abstractions\ContextR.Propagation.Abstractions.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ContextR.Transport.Grpc.UnitTests" />
+  </ItemGroup>
+</Project>

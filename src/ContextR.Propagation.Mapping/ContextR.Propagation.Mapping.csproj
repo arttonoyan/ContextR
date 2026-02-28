@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ContextR.Propagation.Mapping</AssemblyName>
+    <RootNamespace>ContextR.Propagation.Mapping</RootNamespace>
+    <PackageId>ContextR.Propagation.Mapping</PackageId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ContextR\ContextR.csproj" />
+    <ProjectReference Include="..\ContextR.Propagation.Abstractions\ContextR.Propagation.Abstractions.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ContextR.Propagation.Mapping.UnitTests" />
+  </ItemGroup>
+</Project>

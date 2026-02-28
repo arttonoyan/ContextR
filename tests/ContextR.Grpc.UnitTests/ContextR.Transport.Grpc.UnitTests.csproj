@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -7,12 +6,13 @@
     <IsPackable>false</IsPackable>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Grpc.Core.Api" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
@@ -21,14 +21,14 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
-
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ContextR\ContextR.csproj" />
+    <ProjectReference Include="..\..\src\ContextR.Transport.Grpc\ContextR.Transport.Grpc.csproj" />
+    <ProjectReference Include="..\..\src\ContextR.Propagation.Mapping\ContextR.Propagation.Mapping.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <Using Include="Xunit" />
     <Using Include="ContextR.Propagation.Abstractions" />
+    <Using Include="ContextR.Propagation.Mapping" />
+    <Using Include="ContextR.Transport.Grpc" />
   </ItemGroup>
-
 </Project>

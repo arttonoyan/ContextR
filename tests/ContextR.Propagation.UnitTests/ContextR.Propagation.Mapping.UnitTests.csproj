@@ -23,12 +23,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ContextR\ContextR.csproj" />
+    <ProjectReference Include="..\..\src\ContextR.Propagation.Mapping\ContextR.Propagation.Mapping.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
     <Using Include="ContextR.Propagation.Abstractions" />
+    <Using Include="ContextR.Propagation.Mapping" />
   </ItemGroup>
 
 </Project>

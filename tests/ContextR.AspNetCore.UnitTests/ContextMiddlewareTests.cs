@@ -1,4 +1,4 @@
-using ContextR.AspNetCore.Internal;
+using ContextR.Hosting.AspNetCore.Internal;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 

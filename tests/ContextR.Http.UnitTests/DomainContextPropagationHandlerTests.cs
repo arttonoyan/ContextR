@@ -1,4 +1,4 @@
-using ContextR.Http;
+using ContextR.Transport.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ContextR.Http.UnitTests;
