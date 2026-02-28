@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ContextR.Propagation</AssemblyName>
+    <RootNamespace>ContextR.Propagation</RootNamespace>
+    <PackageId>ContextR.Propagation</PackageId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ContextR\ContextR.csproj" />
+  </ItemGroup>
+</Project>

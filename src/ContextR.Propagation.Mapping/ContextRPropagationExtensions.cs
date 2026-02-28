@@ -1,5 +1,5 @@
 using System.Linq.Expressions;
-using ContextR.Propagation.Abstractions;
+using ContextR.Propagation;
 using ContextR.Propagation.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -19,7 +19,7 @@ public static class ContextRPropagationExtensions
     /// an <see cref="IContextPropagator{TContext}"/> from all mapped properties.
     /// </para>
     /// <para>
-    /// Mutually exclusive with <see cref="IContextRegistrationBuilder{TContext}.UsePropagator{TPropagator}"/>.
+    /// Mutually exclusive with <c>UsePropagator</c>.
     /// </para>
     /// </summary>
     /// <typeparam name="TContext">The context type.</typeparam>

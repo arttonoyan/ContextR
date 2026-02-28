@@ -11,7 +11,7 @@ public sealed class PropagatorRegistrationTests
 
         services.AddContextR(builder =>
         {
-            builder.Add<TestContext>(reg => reg.UsePropagator<CustomPropagator>());
+            builder.Add<TestContext>(reg => reg.UsePropagator<TestContext, CustomPropagator>());
         });
 
         using var provider = services.BuildServiceProvider();

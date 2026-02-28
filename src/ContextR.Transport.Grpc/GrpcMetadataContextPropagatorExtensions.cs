@@ -1,5 +1,5 @@
 using Grpc.Core;
-using ContextR.Propagation.Abstractions;
+using ContextR.Propagation;
 
 namespace ContextR.Transport.Grpc;
 

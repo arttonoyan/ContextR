@@ -1,5 +1,5 @@
 using ContextR;
-using ContextR.Propagation.Abstractions;
+using ContextR.Propagation;
 using ContextR.Transport.Grpc;
 using Grpc.Net.ClientFactory;
 using Microsoft.Extensions.DependencyInjection.Extensions;

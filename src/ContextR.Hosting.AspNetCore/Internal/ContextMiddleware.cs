@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Http;
-using ContextR.Propagation.Abstractions;
+using ContextR.Propagation;
 
 namespace ContextR.Hosting.AspNetCore.Internal;
 

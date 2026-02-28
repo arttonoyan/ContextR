@@ -1,4 +1,4 @@
-namespace ContextR.Propagation.Abstractions;
+namespace ContextR.Propagation;
 
 /// <summary>
 /// Defines how a context type is serialized to and deserialized from a transport carrier

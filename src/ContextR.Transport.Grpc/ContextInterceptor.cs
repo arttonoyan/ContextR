@@ -1,6 +1,6 @@
 using Grpc.Core;
 using Grpc.Core.Interceptors;
-using ContextR.Propagation.Abstractions;
+using ContextR.Propagation;
 
 namespace ContextR.Transport.Grpc;
 

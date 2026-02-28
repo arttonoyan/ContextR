@@ -1,5 +1,5 @@
 using ContextR.Hosting.AspNetCore.Internal;
-using ContextR.Propagation.Abstractions;
+using ContextR.Propagation;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 

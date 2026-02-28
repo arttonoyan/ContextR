@@ -32,7 +32,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
-    <Using Include="ContextR.Propagation.Abstractions" />
+    <Using Include="ContextR.Propagation" />
     <Using Include="ContextR.Propagation.Mapping" />
     <Using Include="ContextR.Hosting.AspNetCore" />
     <Using Include="ContextR.Hosting.AspNetCore.Internal" />

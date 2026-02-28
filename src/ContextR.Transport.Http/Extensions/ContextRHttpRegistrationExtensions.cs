@@ -1,4 +1,4 @@
-using ContextR.Propagation.Abstractions;
+using ContextR.Propagation;
 using ContextR.Transport.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;

@@ -60,7 +60,7 @@ public sealed class MapPropertyRegistrationTests
         services.AddContextR(builder =>
         {
             builder.Add<TestContext>(reg => reg
-                .UsePropagator<CustomPropagator>());
+                .UsePropagator<TestContext, CustomPropagator>());
         });
 
         services.AddContextR(builder =>

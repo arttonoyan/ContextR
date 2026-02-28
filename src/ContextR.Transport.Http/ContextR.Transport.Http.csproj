@@ -9,7 +9,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ContextR\ContextR.csproj" />
-    <ProjectReference Include="..\ContextR.Propagation.Abstractions\ContextR.Propagation.Abstractions.csproj" />
+    <ProjectReference Include="..\ContextR.Propagation\ContextR.Propagation.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ContextR.Transport.Http.UnitTests" />

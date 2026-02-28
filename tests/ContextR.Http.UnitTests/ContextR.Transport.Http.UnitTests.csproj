@@ -29,7 +29,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
-    <Using Include="ContextR.Propagation.Abstractions" />
+    <Using Include="ContextR.Propagation" />
     <Using Include="ContextR.Propagation.Mapping" />
     <Using Include="ContextR.Transport.Http" />
   </ItemGroup>

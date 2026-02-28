@@ -1,4 +1,3 @@
-using ContextR.Propagation.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ContextR;
@@ -22,11 +21,4 @@ public interface IContextRegistrationBuilder<TContext> where TContext : class
     /// </summary>
     string? Domain { get; }
 
-    /// <summary>
-    /// Registers a custom <see cref="IContextPropagator{TContext}"/> implementation.
-    /// </summary>
-    /// <typeparam name="TPropagator">The propagator implementation type.</typeparam>
-    /// <returns>The same builder for fluent chaining.</returns>
-    IContextRegistrationBuilder<TContext> UsePropagator<TPropagator>()
-        where TPropagator : class, IContextPropagator<TContext>;
 }

@@ -1,4 +1,4 @@
-using ContextR.Propagation.Abstractions;
+using ContextR.Propagation;
 
 namespace ContextR.Transport.Http;
 
