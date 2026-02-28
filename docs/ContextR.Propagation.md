@@ -84,13 +84,34 @@ return anySet ? context : null       // null when no keys were found
 
 If no keys were found in the carrier, `Extract` returns `null` -- the context is not created.
 
-## Supported property types
+## Supported property types (default behavior)
 
 | Type | Parsing strategy |
 |---|---|
 | `string` | Direct assignment, no parsing |
 | Types implementing `IParsable<T>` | `T.TryParse(value, null, out result)` via reflection. Covers `int`, `long`, `double`, `decimal`, `Guid`, `DateTime`, `DateTimeOffset`, `TimeSpan`, `bool`, and all other .NET types with `IParsable<T>`. |
 | Other types | Fallback to `Convert.ChangeType(value, type)`. Throws on failure. |
+
+Without an explicit payload strategy, complex mapped types like `List<T>`, arrays, and custom classes do not reliably round-trip.
+
+## Payload strategy extensions
+
+`ContextR.Propagation` provides strategy hooks for mapped property payload behavior:
+
+```csharp
+ctx.Add<RequestContext>(reg => reg
+    .UsePayloadSerializer<RequestContext, CustomSerializer>()
+    .UseTransportPolicy<RequestContext, CustomPolicy>()
+    .MapProperty(c => c.Tags, "X-Tags"));
+```
+
+Available abstractions:
+
+- `IContextPayloadSerializer<TContext>` -- serialize/deserialize mapped property payloads
+- `IContextTransportPolicy<TContext>` -- payload size constraints + oversize behavior
+- `ContextOversizeBehavior` -- `FailFast`, `SkipProperty`, `FallbackToToken`
+
+For production-ready non-primitive support, prefer the dedicated `ContextR.Propagation.InlineJson` package.
 
 ### Examples
 
@@ -232,3 +253,12 @@ Internal `IContextPropagator<TContext>` implementation. Collects all `IPropertyM
 | `Internal/IPropertyMapping.cs` | Internal interface for single property mapping |
 | `Internal/PropertyMapping.cs` | Expression-compiled property accessor and parser |
 | `Internal/MappingContextPropagator.cs` | `IContextPropagator<T>` implementation that delegates to property mappings |
+
+## Testing
+
+Strategy-related coverage lives in:
+
+- `tests/ContextR.Propagation.UnitTests` (mapping behavior and guard clauses)
+- `tests/ContextR.Propagation.InlineJson.UnitTests` (inline JSON serializer + registration)
+- `tests/ContextR.Propagation.Token.UnitTests` (token contracts)
+- `tests/ContextR.Propagation.Strategies.IntegrationTests` (integration + functional scenarios on `Microsoft.AspNetCore.TestHost`)

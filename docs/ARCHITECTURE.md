@@ -547,6 +547,7 @@ sequenceDiagram
 |------|------|
 | `IContextPropagator.cs` | Transport-agnostic serialization/deserialization interface using carrier pattern |
 | `ContextRPropagationRegistrationExtensions.cs` | `UsePropagator<TContext, TPropagator>()` registration extension |
+| `ContextPayloadContracts.cs` | Payload strategy abstractions: `IContextPayloadSerializer<T>`, `IContextTransportPolicy<T>`, `ContextOversizeBehavior` |
 
 ### ContextR.Propagation.Mapping
 
@@ -554,8 +555,24 @@ sequenceDiagram
 |------|------|
 | `ContextRPropagationExtensions.cs` | `MapProperty()` extension method. Registers `IPropertyMapping<T>` and `MappingContextPropagator<T>` into DI. |
 | `Internal/IPropertyMapping.cs` | Internal interface: `Key`, `GetValue`, `TrySetValue` |
-| `Internal/PropertyMapping.cs` | Expression-compiled property accessor. Handles `string`, `IParsable<T>`, and `Convert.ChangeType` parsing. |
+| `Internal/PropertyMapping.cs` | Expression-compiled property accessor. Uses optional payload serializer/policy from DI; falls back to legacy `IParsable`/`Convert.ChangeType` behavior when strategy is not configured. |
 | `Internal/MappingContextPropagator.cs` | `IContextPropagator<T>` that delegates `Inject`/`Extract` to collected `IPropertyMapping<T>` instances. |
+
+### ContextR.Propagation.InlineJson
+
+| File | Role |
+|------|------|
+| `ContextRInlineJsonRegistrationExtensions.cs` | `UseInlineJsonPayloads<T>()` registration extension with options |
+| `InlineJsonPayloadSerializer.cs` | JSON payload serializer for complex mapped types |
+| `InlineJsonPayloadOptions.cs` | Size policy options and inline transport policy implementation |
+
+### ContextR.Propagation.Token
+
+| File | Role |
+|------|------|
+| `ContextPayloadTokenReference.cs` | Token envelope record |
+| `IContextPayloadStore.cs` | Out-of-band payload store contract |
+| `IContextPayloadTokenCodec.cs` | Token envelope encode/decode contract |
 
 ### ContextR.Transport.Http
 

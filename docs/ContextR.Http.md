@@ -142,6 +142,23 @@ _ = Task.Run(async () =>
 });
 ```
 
+## Complex payloads and header limits
+
+For mapped complex properties (`List<T>`, arrays, custom classes), combine HTTP transport with a payload strategy package:
+
+```csharp
+ctx.Add<RequestContext>(reg => reg
+    .UseInlineJsonPayloads<RequestContext>(o =>
+    {
+        o.MaxPayloadBytes = 4096;
+        o.OversizeBehavior = ContextOversizeBehavior.FailFast;
+    })
+    .MapProperty(c => c.Tags, "X-Tags")
+    .UseGlobalHttpPropagation());
+```
+
+HTTP infrastructure has practical header-size limits. Keep payloads small, and use token/reference strategy (`ContextR.Propagation.Token`) for large values.
+
 ## File map
 
 | File | Role |

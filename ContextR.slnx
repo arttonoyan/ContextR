@@ -1,6 +1,12 @@
 <Solution>
   <Folder Name="/docs/">
     <File Path="docs/ARCHITECTURE.md" />
+    <File Path="docs/ContextR.AspNetCore.md" />
+    <File Path="docs/ContextR.Grpc.md" />
+    <File Path="docs/ContextR.Http.md" />
+    <File Path="docs/ContextR.Propagation.InlineJson.md" />
+    <File Path="docs/ContextR.Propagation.md" />
+    <File Path="docs/ContextR.Propagation.Token.md" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />

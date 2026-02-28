@@ -93,6 +93,23 @@ In this case, client propagation reads from `_accessor.GetContext<TContext>("grp
 
 gRPC metadata keys are treated as lowercase in transport helpers. ContextR gRPC adapters normalize keys to lowercase before read/write to keep behavior consistent with gRPC conventions.
 
+## Complex payloads and metadata limits
+
+For mapped complex properties, configure a payload strategy explicitly:
+
+```csharp
+ctx.Add<RequestContext>(reg => reg
+    .UseInlineJsonPayloads<RequestContext>(o =>
+    {
+        o.MaxPayloadBytes = 4096;
+        o.OversizeBehavior = ContextOversizeBehavior.FailFast;
+    })
+    .MapProperty(c => c.Tags, "x-tags")
+    .UseGlobalGrpcPropagation());
+```
+
+gRPC metadata is still header-based and constrained by transport/proxy limits. Keep inline payloads bounded and prefer token/reference strategy for large values.
+
 ## File map
 
 | File | Role |
