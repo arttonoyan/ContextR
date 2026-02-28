@@ -19,6 +19,7 @@ internal sealed class ContextMiddleware<TContext> where TContext : class
         IContextPropagator<TContext> propagator,
         IContextWriter writer)
     {
+        using var _ = PropagationExecutionContext.BeginDomainScope(_domain);
         var context = propagator.Extract(
             httpContext.Request.Headers,
             static (headers, key) => headers.TryGetValue(key, out var values) ? (string?)values : null);

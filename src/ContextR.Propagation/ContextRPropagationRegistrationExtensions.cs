@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.DependencyInjection;
+using System.Linq;
 
 namespace ContextR.Propagation;
 
@@ -59,7 +61,10 @@ public static class ContextRPropagationRegistrationExtensions
         where THandler : class, IContextPropagationFailureHandler<TContext>
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.Services.TryAddSingleton<IContextPropagationFailureHandler<TContext>, THandler>();
+        builder.Services.TryAddSingleton<THandler>();
+
+        var registry = GetOrAddFailureRegistry<TContext>(builder.Services);
+        registry.TryAdd(builder.Domain, sp => sp.GetRequiredService<THandler>());
         return builder;
     }
 
@@ -74,10 +79,26 @@ public static class ContextRPropagationRegistrationExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(handler);
 
-        builder.Services.TryAddSingleton<IContextPropagationFailureHandler<TContext>>(
-            _ => new DelegateContextPropagationFailureHandler<TContext>(handler));
+        var registry = GetOrAddFailureRegistry<TContext>(builder.Services);
+        registry.TryAdd(builder.Domain, _ => new DelegateContextPropagationFailureHandler<TContext>(handler));
 
         return builder;
+    }
+
+    private static ContextPropagationFailureHandlerRegistry<TContext> GetOrAddFailureRegistry<TContext>(
+        IServiceCollection services)
+        where TContext : class
+    {
+        var existing = services
+            .FirstOrDefault(d => d.ServiceType == typeof(ContextPropagationFailureHandlerRegistry<TContext>))
+            ?.ImplementationInstance as ContextPropagationFailureHandlerRegistry<TContext>;
+
+        if (existing is not null)
+            return existing;
+
+        var created = new ContextPropagationFailureHandlerRegistry<TContext>();
+        services.AddSingleton(created);
+        return created;
     }
 
     private sealed class DelegateContextPropagationFailureHandler<TContext>(

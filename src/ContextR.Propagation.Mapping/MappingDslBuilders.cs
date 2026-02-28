@@ -64,8 +64,8 @@ public sealed class ContextMapBuilder<TContext>
         _registrationBuilder.Services.TryAddSingleton<IContextPropagator<TContext>>(sp =>
             new MappingContextPropagator<TContext>(
                 sp.GetServices<IPropertyMapping<TContext>>(),
-                sp.GetService<IContextPropagationFailureHandler<TContext>>(),
-                _registrationBuilder.Domain));
+                sp,
+                sp.GetService<ContextPropagationFailureHandlerRegistry<TContext>>()));
 
         return this;
     }

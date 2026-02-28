@@ -42,6 +42,7 @@ public class ContextPropagationHandler<TContext> : DelegatingHandler
 
         if (context is not null)
         {
+            using var _ = PropagationExecutionContext.BeginDomainScope(_domain);
             _propagator.Inject(context, request.Headers,
                 static (headers, key, value) => headers.TryAddWithoutValidation(key, value));
         }

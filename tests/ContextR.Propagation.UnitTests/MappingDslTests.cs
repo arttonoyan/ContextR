@@ -157,6 +157,52 @@ public sealed class MappingDslTests
         Assert.Null(extracted);
     }
 
+    [Fact]
+    public void OnPropagationFailure_UsesDomainSpecificHandler_WhenDomainScopeIsSet()
+    {
+        var services = new ServiceCollection();
+
+        services.AddContextR(builder =>
+        {
+            builder.Add<TestContext>(reg => reg
+                .OnPropagationFailure(_ => PropagationFailureAction.Throw)
+                .Map(m => m.Property(c => c.TraceId, "X-Trace-Id").Required()));
+
+            builder.AddDomain("web-api", domain =>
+            {
+                domain.Add<TestContext>(reg => reg
+                    .OnPropagationFailure(_ => PropagationFailureAction.SkipProperty));
+            });
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<TestContext>>();
+
+        using var _ = PropagationExecutionContext.BeginDomainScope("web-api");
+        var extracted = propagator.Extract(new Dictionary<string, string>(), static (c, k) => c.TryGetValue(k, out var v) ? v : null);
+        Assert.Null(extracted);
+    }
+
+    [Fact]
+    public void OnPropagationFailure_FallsBackToDefaultHandler_WhenDomainSpecificMissing()
+    {
+        var services = new ServiceCollection();
+
+        services.AddContextR(builder =>
+        {
+            builder.Add<TestContext>(reg => reg
+                .OnPropagationFailure<TestContext>(_ => PropagationFailureAction.SkipProperty)
+                .Map(m => m.Property(c => c.TraceId, "X-Trace-Id").Required()));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<TestContext>>();
+
+        using var _ = PropagationExecutionContext.BeginDomainScope("non-existing");
+        var extracted = propagator.Extract(new Dictionary<string, string>(), static (c, k) => c.TryGetValue(k, out var v) ? v : null);
+        Assert.Null(extracted);
+    }
+
     private sealed class TestContext
     {
         public string? TraceId { get; set; }

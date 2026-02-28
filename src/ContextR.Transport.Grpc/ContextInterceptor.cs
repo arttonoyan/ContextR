@@ -78,6 +78,7 @@ public class ContextInterceptor<TContext> : Interceptor
 
     private void ExtractAndSetContext(Metadata headers)
     {
+        using var _ = PropagationExecutionContext.BeginDomainScope(_domain);
         var extractedContext = _propagator.ExtractContext(headers);
         if (extractedContext is null)
         {

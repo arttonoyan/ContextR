@@ -3,14 +3,20 @@ namespace ContextR.Propagation.Internal;
 internal sealed class MappingContextPropagator<TContext> : IContextPropagator<TContext>
     where TContext : class
 {
+    private sealed class EmptyServiceProvider : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => null;
+    }
+
+    private static readonly IServiceProvider NoServices = new EmptyServiceProvider();
     private readonly IPropertyMapping<TContext>[] _mappings;
-    private readonly IContextPropagationFailureHandler<TContext>? _failureHandler;
-    private readonly string? _domain;
+    private readonly IServiceProvider _services;
+    private readonly ContextPropagationFailureHandlerRegistry<TContext>? _failureRegistry;
 
     public MappingContextPropagator(
         IEnumerable<IPropertyMapping<TContext>> mappings,
-        IContextPropagationFailureHandler<TContext>? failureHandler = null,
-        string? domain = null)
+        IServiceProvider? services = null,
+        ContextPropagationFailureHandlerRegistry<TContext>? failureRegistry = null)
     {
         if (!HasParameterlessConstructor())
         {
@@ -20,8 +26,8 @@ internal sealed class MappingContextPropagator<TContext> : IContextPropagator<TC
         }
 
         _mappings = mappings.ToArray();
-        _failureHandler = failureHandler;
-        _domain = domain;
+        _services = services ?? NoServices;
+        _failureRegistry = failureRegistry;
     }
 
     public void Inject<TCarrier>(TContext context, TCarrier carrier, Action<TCarrier, string, string> setter)
@@ -152,12 +158,13 @@ internal sealed class MappingContextPropagator<TContext> : IContextPropagator<TC
             Key = key,
             Direction = direction,
             Reason = reason,
-            Domain = _domain,
+            Domain = PropagationExecutionContext.CurrentDomain,
             RawValue = rawValue,
             Exception = exception
         };
 
-        var action = _failureHandler?.Handle(failure) ?? PropagationFailureAction.Throw;
+        var failureHandler = _failureRegistry?.Resolve(_services, failure.Domain);
+        var action = failureHandler?.Handle(failure) ?? PropagationFailureAction.Throw;
 
         if (action == PropagationFailureAction.Throw)
         {

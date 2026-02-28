@@ -99,6 +99,7 @@ public class ContextPropagationInterceptor<TContext> : Interceptor
             ? new Metadata()
             : CloneMetadata(context.Options.Headers);
 
+        using var _ = PropagationExecutionContext.BeginDomainScope(_domain);
         _propagator.Inject(
             currentContext,
             headers,

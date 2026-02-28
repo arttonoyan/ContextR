@@ -94,6 +94,25 @@ internal sealed class StrategyTestApp : IAsyncDisposable
             return Results.Json(new { PropagatedHeaders = outgoing });
         });
 
+        app.MapGet("/propagate/complex/from-current", async (IContextAccessor accessor, IHttpClientFactory factory) =>
+        {
+            var current = accessor.GetContext<ComplexContext>();
+            using var client = factory.CreateClient("backend");
+            using var response = await client.GetAsync("/probe");
+            var outgoing = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+
+            return Results.Json(new
+            {
+                Extracted = new
+                {
+                    current?.TraceId,
+                    current?.Tags,
+                    PayloadCode = current?.Payload?.Code
+                },
+                PropagatedHeaders = outgoing
+            });
+        });
+
         app.MapGet("/propagate/complex/oversize", async (IContextWriter writer, IHttpClientFactory factory) =>
         {
             writer.SetContext(new ComplexContext

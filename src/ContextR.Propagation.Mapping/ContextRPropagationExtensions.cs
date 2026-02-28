@@ -67,8 +67,8 @@ public static class ContextRPropagationExtensions
         builder.Services.TryAddSingleton<IContextPropagator<TContext>>(sp =>
             new MappingContextPropagator<TContext>(
                 sp.GetServices<IPropertyMapping<TContext>>(),
-                sp.GetService<IContextPropagationFailureHandler<TContext>>(),
-                builder.Domain));
+                sp,
+                sp.GetService<ContextPropagationFailureHandlerRegistry<TContext>>()));
 
         return builder;
     }
