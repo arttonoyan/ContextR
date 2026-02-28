@@ -394,6 +394,7 @@ dotnet add package ContextR
 dotnet add package ContextR.Propagation
 dotnet add package ContextR.Http
 dotnet add package ContextR.AspNetCore
+dotnet add package ContextR.Grpc
 ```
 
 ### Full example -- ASP.NET Core API with outgoing HTTP calls
@@ -526,7 +527,7 @@ Each domain's middleware and handler operate on their own isolated context slot.
 | `ContextR.Propagation` | `MapProperty` fluent API for auto-generating propagators from property mappings | Available |
 | `ContextR.Http` | `DelegatingHandler` for propagating context to outgoing `HttpClient` requests | Available |
 | `ContextR.AspNetCore` | ASP.NET Core middleware for extracting context from incoming HTTP request headers | Available |
-| `ContextR.Grpc` | gRPC client/server interceptors | Planned |
+| `ContextR.Grpc` | gRPC client/server interceptors | Available |
 | `ContextR.Kafka` | Kafka producer/consumer context propagation | Planned |
 
 ## Documentation

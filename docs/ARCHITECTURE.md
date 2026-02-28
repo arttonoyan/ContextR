@@ -567,6 +567,16 @@ sequenceDiagram
 | `Internal/ContextStartupFilter.cs` | `IStartupFilter` that inserts `ContextMiddleware<T>` at the start of the pipeline. Passes domain to middleware. |
 | `Extensions/ContextRAspNetCoreRegistrationExtensions.cs` | `UseAspNetCore()` -- registers `ContextStartupFilter<T>` with captured domain. |
 
+### ContextR.Grpc
+
+| File | Role |
+|------|------|
+| `ContextPropagationInterceptor.cs` | gRPC client interceptor that reads context from `IContextAccessor` and injects metadata via `IContextPropagator<T>`. Domain-aware. |
+| `ContextInterceptor.cs` | gRPC server interceptor that extracts metadata via `IContextPropagator<T>` and writes values to `IContextWriter`. Domain-aware. |
+| `GrpcMetadataContextPropagatorExtensions.cs` | Adapter helpers for `IContextPropagator<T>` with gRPC `Metadata` carriers. |
+| `Extensions/ContextRGrpcRegistrationExtensions.cs` | `UseGlobalGrpcPropagation()` -- registers propagation interceptor globally for gRPC clients and captures domain. |
+| `Extensions/ContextRGrpcClientBuilderExtensions.cs` | Per-client gRPC extensions for `IHttpClientBuilder` / `GrpcClientFactoryOptions`. |
+
 ---
 
 ## FAQ
@@ -682,7 +692,7 @@ Each type gets its own `AsyncLocal` slot and is included in snapshots automatica
 
 ### Q: Why is `IContextPropagator<T>` in the core package and not in `ContextR.Propagation`?
 
-Because every transport package (`ContextR.Http`, `ContextR.AspNetCore`, future `ContextR.Grpc`) depends on this interface to serialize and deserialize context. Placing it in the core package means transport packages only need a dependency on `ContextR`, not on `ContextR.Propagation`.
+Because every transport package (`ContextR.Http`, `ContextR.AspNetCore`, `ContextR.Grpc`) depends on this interface to serialize and deserialize context. Placing it in the core package means transport packages only need a dependency on `ContextR`, not on `ContextR.Propagation`.
 
 `ContextR.Propagation` provides one *implementation strategy* (`MapProperty` → `MappingContextPropagator`). Users who implement `IContextPropagator<T>` directly and register it with `UsePropagator<T>()` never need the `ContextR.Propagation` package at all.
 
