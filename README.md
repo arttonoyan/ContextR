@@ -117,6 +117,7 @@ ContextR makes context flow reliable across async code, HTTP, gRPC, and backgrou
 - [Usage Cookbook](docs/UsageCookbook.md)
 - [Q&A / FAQ](docs/FAQ.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Context Resolution](docs/ContextR.Resolution.md)
 - [Propagation Mapping](docs/ContextR.Propagation.md)
 - [Inline JSON Strategy](docs/ContextR.Propagation.InlineJson.md)
 - [Chunking Strategy](docs/ContextR.Propagation.Chunking.md)
@@ -133,6 +134,7 @@ Real-world examples are available under [`samples`](samples):
 - [Multi-tenant SaaS propagation](samples/MultiTenantSaaS/README.md)
 - [Mixed HTTP + gRPC microservices](samples/MicroservicesHttpGrpc/README.md)
 - [Background jobs propagation](samples/BackgroundJobs/README.md)
+- [Gateway ingress resolution (JWT -> UserContext)](samples/GatewayIngressResolution/README.md)
 - [Replacing `IHttpContextAccessor` usage with snapshot model](samples/HttpContextAccessorReplacement/README.md)
 - [JWT vs operational context propagation](samples/JwtAdjunctContext/README.md)
 
@@ -141,6 +143,7 @@ Real-world examples are available under [`samples`](samples):
 | Package | Purpose |
 |---|---|
 | `ContextR` | Core ambient context, snapshots, scopes, domains |
+| `ContextR.Resolution` | Ingress context resolution contracts/orchestrator/policies (optional package) |
 | `ContextR.Propagation` | Propagation contracts + registration APIs |
 | `ContextR.Propagation.Mapping` | `MapProperty` and advanced `Map(...)` DSL |
 | `ContextR.Propagation.InlineJson` | JSON serializer strategy for complex properties |
@@ -149,6 +152,13 @@ Real-world examples are available under [`samples`](samples):
 | `ContextR.Hosting.AspNetCore` | Incoming ASP.NET Core extraction middleware |
 | `ContextR.Transport.Http` | Outgoing `HttpClient` propagation handler |
 | `ContextR.Transport.Grpc` | gRPC client/server propagation interceptors |
+
+### Resolution Registration Note
+
+`ContextR.Resolution` stays optional by design.  
+If you use `UseResolver(...)` or `UseResolutionPolicy(...)`, resolution services are auto-registered for you.
+
+Use `UseResolution()` only when you want orchestrator/policy services without registering a resolver/policy yet.
 
 ## Design Principles
 

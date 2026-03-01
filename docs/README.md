@@ -12,6 +12,7 @@ Start here for practical guidance, then go deeper into package-specific details.
 ## Core and Architecture
 
 - [Architecture](ARCHITECTURE.md)
+- [Context Resolution](ContextR.Resolution.md)
 - [Propagation Mapping](ContextR.Propagation.md)
 
 ## Strategy Packages

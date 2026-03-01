@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using ContextR.Resolution;
 
 namespace ContextR.IntegrationTests;
 
@@ -17,6 +18,85 @@ public sealed class DependencyInjectionIntegrationTests
 
         Assert.Same(rootAccessor, scopedAccessor);
         Assert.Same(rootWriter, scopedWriter);
+    }
+
+    [Fact]
+    public void AddContextR_RegistersResolutionOrchestrator()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<UserContext>(reg => reg
+                .UseResolver(_ => new UserContext("resolved-user")));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var orchestrator = provider.GetRequiredService<IContextResolutionOrchestrator<UserContext>>();
+
+        var result = orchestrator.Resolve(new ContextResolutionContext
+        {
+            Boundary = ContextIngressBoundary.External
+        });
+
+        Assert.Equal("resolved-user", result.Context?.UserId);
+        Assert.Equal(ContextResolutionSource.Resolver, result.Source);
+    }
+
+    [Fact]
+    public void UseResolver_TypedOverload_AutoRegistersResolutionServices()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<UserContext>(reg => reg
+                .UseResolver<UserContext, TypedUserContextResolver>());
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var orchestrator = provider.GetRequiredService<IContextResolutionOrchestrator<UserContext>>();
+        var result = orchestrator.Resolve(new ContextResolutionContext { Boundary = ContextIngressBoundary.External });
+
+        Assert.NotNull(orchestrator);
+        Assert.Equal("typed-resolver", result.Context?.UserId);
+        Assert.Equal(ContextResolutionSource.Resolver, result.Source);
+    }
+
+    [Fact]
+    public void UseResolver_DelegateOverload_AutoRegistersResolutionServices()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<UserContext>(reg => reg
+                .UseResolver(_ => new UserContext("delegate-resolver")));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var orchestrator = provider.GetRequiredService<IContextResolutionOrchestrator<UserContext>>();
+        var result = orchestrator.Resolve(new ContextResolutionContext { Boundary = ContextIngressBoundary.External });
+
+        Assert.NotNull(orchestrator);
+        Assert.Equal("delegate-resolver", result.Context?.UserId);
+        Assert.Equal(ContextResolutionSource.Resolver, result.Source);
+    }
+
+    [Fact]
+    public void UseResolver_FactoryOverload_AutoRegistersResolutionServices()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<UserContext>(reg => reg
+                .UseResolver(_ => new TypedUserContextResolver("factory-resolver")));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var orchestrator = provider.GetRequiredService<IContextResolutionOrchestrator<UserContext>>();
+        var result = orchestrator.Resolve(new ContextResolutionContext { Boundary = ContextIngressBoundary.External });
+
+        Assert.NotNull(orchestrator);
+        Assert.Equal("factory-resolver", result.Context?.UserId);
+        Assert.Equal(ContextResolutionSource.Resolver, result.Source);
     }
 
     [Fact]
@@ -182,4 +262,21 @@ public sealed class DependencyInjectionIntegrationTests
 
     private sealed record UserContext(string UserId);
     private sealed record TenantContext(string TenantId);
+
+    private sealed class TypedUserContextResolver : IContextResolver<UserContext>
+    {
+        private readonly string _userId;
+
+        public TypedUserContextResolver()
+            : this("typed-resolver")
+        {
+        }
+
+        public TypedUserContextResolver(string userId)
+        {
+            _userId = userId;
+        }
+
+        public UserContext? Resolve(ContextResolutionContext context) => new(_userId);
+    }
 }

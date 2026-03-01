@@ -7,6 +7,7 @@ These samples focus on practical adoption patterns and migration guidance.
 - [MultiTenantSaaS](MultiTenantSaaS/README.md)
 - [MicroservicesHttpGrpc](MicroservicesHttpGrpc/README.md)
 - [BackgroundJobs](BackgroundJobs/README.md)
+- [GatewayIngressResolution](GatewayIngressResolution/README.md)
 
 ## Focused migration examples
 

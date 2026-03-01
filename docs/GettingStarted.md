@@ -109,3 +109,23 @@ Recommended first tests:
 - oversize behavior is deterministic
 
 For full examples, see [samples](../samples/README.md).
+
+## Optional: Ingress resolution (gateway / first-hop)
+
+If you also want to resolve context at ingress (for example from JWT claims), add `ContextR.Resolution` and configure either `UseResolution()` or `UseResolver(...)`.
+
+```csharp
+builder.Services.AddContextR(ctx =>
+{
+    // Optional explicit activation:
+    ctx.UseResolution();
+
+    ctx.Add<UserContext>(reg => reg
+        .UseResolver(_ => new UserContext { UserId = "resolved-user" }));
+});
+```
+
+Notes:
+
+- `UseResolver(...)` and `UseResolutionPolicy(...)` auto-register resolution services.
+- `UseResolution()` is useful when you need orchestrator/policy services before resolver/policy registration.
