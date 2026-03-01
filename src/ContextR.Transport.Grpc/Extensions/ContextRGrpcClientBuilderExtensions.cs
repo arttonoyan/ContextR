@@ -21,6 +21,7 @@ public static class ContextRGrpcClientBuilderExtensions
     public static IHttpClientBuilder AddContextRGrpcPropagation<TContext>(this IHttpClientBuilder builder)
         where TContext : class
     {
+        builder.Services.TryAddSingleton<IPropagationExecutionScope, AsyncLocalPropagationExecutionScope>();
         builder.Services.TryAddTransient<ContextPropagationInterceptor<TContext>>();
         return builder.AddInterceptor<ContextPropagationInterceptor<TContext>>();
     }
@@ -41,6 +42,7 @@ public static class ContextRGrpcClientBuilderExtensions
             sp => new ContextPropagationInterceptor<TContext>(
                 sp.GetRequiredService<IContextAccessor>(),
                 sp.GetRequiredService<IContextPropagator<TContext>>(),
-                domain)));
+                domain,
+                sp.GetRequiredService<IPropagationExecutionScope>())));
     }
 }

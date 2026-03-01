@@ -1,5 +1,4 @@
 using ContextR.Propagation;
-using ContextR.Transport.Grpc;
 using Grpc.Net.ClientFactory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -28,11 +27,13 @@ public static class ContextRGrpcRegistrationExtensions
         where TContext : class
     {
         var domain = builder.Domain;
+        builder.Services.TryAddSingleton<IPropagationExecutionScope, AsyncLocalPropagationExecutionScope>();
 
         builder.Services.TryAddTransient(sp => new ContextPropagationInterceptor<TContext>(
             sp.GetRequiredService<IContextAccessor>(),
             sp.GetRequiredService<IContextPropagator<TContext>>(),
-            domain));
+            domain,
+            sp.GetRequiredService<IPropagationExecutionScope>()));
 
         builder.Services.ConfigureAll<GrpcClientFactoryOptions>(options =>
             options.AddContextRPropagationInterceptor<TContext>(domain));

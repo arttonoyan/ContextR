@@ -14,23 +14,26 @@ public class ContextInterceptor<TContext> : Interceptor
 {
     private readonly IContextWriter _writer;
     private readonly IContextPropagator<TContext> _propagator;
+    private readonly IPropagationExecutionScope _executionScope;
     private readonly string? _domain;
 
     /// <inheritdoc cref="ContextInterceptor{TContext}" />
     public ContextInterceptor(
         IContextWriter writer,
         IContextPropagator<TContext> propagator)
-        : this(writer, propagator, domain: null)
+        : this(writer, propagator, domain: null, executionScope: new AsyncLocalPropagationExecutionScope())
     {
     }
 
     internal ContextInterceptor(
         IContextWriter writer,
         IContextPropagator<TContext> propagator,
-        string? domain)
+        string? domain,
+        IPropagationExecutionScope? executionScope = null)
     {
         _writer = writer;
         _propagator = propagator;
+        _executionScope = executionScope ?? new AsyncLocalPropagationExecutionScope();
         _domain = domain;
     }
 
@@ -78,7 +81,7 @@ public class ContextInterceptor<TContext> : Interceptor
 
     private void ExtractAndSetContext(Metadata headers)
     {
-        using var _ = PropagationExecutionContext.BeginDomainScope(_domain);
+        using var _ = _executionScope.BeginDomainScope(_domain);
         var extractedContext = _propagator.ExtractContext(headers);
         if (extractedContext is null)
         {

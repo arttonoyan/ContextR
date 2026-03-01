@@ -177,8 +177,9 @@ public sealed class MappingDslTests
 
         using var provider = services.BuildServiceProvider();
         var propagator = provider.GetRequiredService<IContextPropagator<TestContext>>();
+        var executionScope = provider.GetRequiredService<IPropagationExecutionScope>();
 
-        using var _ = PropagationExecutionContext.BeginDomainScope("web-api");
+        using var _ = executionScope.BeginDomainScope("web-api");
         var extracted = propagator.Extract(new Dictionary<string, string>(), static (c, k) => c.TryGetValue(k, out var v) ? v : null);
         Assert.Null(extracted);
     }
@@ -197,8 +198,9 @@ public sealed class MappingDslTests
 
         using var provider = services.BuildServiceProvider();
         var propagator = provider.GetRequiredService<IContextPropagator<TestContext>>();
+        var executionScope = provider.GetRequiredService<IPropagationExecutionScope>();
 
-        using var _ = PropagationExecutionContext.BeginDomainScope("non-existing");
+        using var _ = executionScope.BeginDomainScope("non-existing");
         var extracted = propagator.Extract(new Dictionary<string, string>(), static (c, k) => c.TryGetValue(k, out var v) ? v : null);
         Assert.Null(extracted);
     }

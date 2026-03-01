@@ -22,6 +22,7 @@ public static class ContextRPropagationRegistrationExtensions
         where TPropagator : class, IContextPropagator<TContext>
     {
         ArgumentNullException.ThrowIfNull(builder);
+        EnsureExecutionScopeRegistration(builder.Services);
         builder.Services.TryAddSingleton<IContextPropagator<TContext>, TPropagator>();
         return builder;
     }
@@ -35,6 +36,7 @@ public static class ContextRPropagationRegistrationExtensions
         where TSerializer : class, IContextPayloadSerializer<TContext>
     {
         ArgumentNullException.ThrowIfNull(builder);
+        EnsureExecutionScopeRegistration(builder.Services);
         builder.Services.TryAddSingleton<IContextPayloadSerializer<TContext>, TSerializer>();
         return builder;
     }
@@ -48,6 +50,7 @@ public static class ContextRPropagationRegistrationExtensions
         where TPolicy : class, IContextTransportPolicy<TContext>
     {
         ArgumentNullException.ThrowIfNull(builder);
+        EnsureExecutionScopeRegistration(builder.Services);
         builder.Services.TryAddSingleton<IContextTransportPolicy<TContext>, TPolicy>();
         return builder;
     }
@@ -61,6 +64,7 @@ public static class ContextRPropagationRegistrationExtensions
         where THandler : class, IContextPropagationFailureHandler<TContext>
     {
         ArgumentNullException.ThrowIfNull(builder);
+        EnsureExecutionScopeRegistration(builder.Services);
         builder.Services.TryAddSingleton<THandler>();
 
         var registry = GetOrAddFailureRegistry<TContext>(builder.Services);
@@ -78,11 +82,17 @@ public static class ContextRPropagationRegistrationExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(handler);
+        EnsureExecutionScopeRegistration(builder.Services);
 
         var registry = GetOrAddFailureRegistry<TContext>(builder.Services);
         registry.TryAdd(builder.Domain, _ => new DelegateContextPropagationFailureHandler<TContext>(handler));
 
         return builder;
+    }
+
+    private static void EnsureExecutionScopeRegistration(IServiceCollection services)
+    {
+        services.TryAddSingleton<IPropagationExecutionScope, AsyncLocalPropagationExecutionScope>();
     }
 
     private static ContextPropagationFailureHandlerRegistry<TContext> GetOrAddFailureRegistry<TContext>(

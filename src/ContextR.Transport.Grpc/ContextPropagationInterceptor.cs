@@ -14,23 +14,26 @@ public class ContextPropagationInterceptor<TContext> : Interceptor
 {
     private readonly IContextAccessor _accessor;
     private readonly IContextPropagator<TContext> _propagator;
+    private readonly IPropagationExecutionScope _executionScope;
     private readonly string? _domain;
 
     /// <inheritdoc cref="ContextPropagationInterceptor{TContext}" />
     public ContextPropagationInterceptor(
         IContextAccessor accessor,
         IContextPropagator<TContext> propagator)
-        : this(accessor, propagator, domain: null)
+        : this(accessor, propagator, domain: null, executionScope: new AsyncLocalPropagationExecutionScope())
     {
     }
 
     internal ContextPropagationInterceptor(
         IContextAccessor accessor,
         IContextPropagator<TContext> propagator,
-        string? domain)
+        string? domain,
+        IPropagationExecutionScope? executionScope = null)
     {
         _accessor = accessor;
         _propagator = propagator;
+        _executionScope = executionScope ?? new AsyncLocalPropagationExecutionScope();
         _domain = domain;
     }
 
@@ -99,7 +102,7 @@ public class ContextPropagationInterceptor<TContext> : Interceptor
             ? new Metadata()
             : CloneMetadata(context.Options.Headers);
 
-        using var _ = PropagationExecutionContext.BeginDomainScope(_domain);
+        using var _ = _executionScope.BeginDomainScope(_domain);
         _propagator.Inject(
             currentContext,
             headers,

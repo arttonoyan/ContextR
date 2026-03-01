@@ -23,6 +23,23 @@ public sealed class MapPropertyRegistrationTests
     }
 
     [Fact]
+    public void MapProperty_RegistersPropagationExecutionScope_InDI()
+    {
+        var services = new ServiceCollection();
+
+        services.AddContextR(builder =>
+        {
+            builder.Add<TestContext>(reg => reg
+                .MapProperty(c => c.TenantId, "X-Tenant-Id"));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var executionScope = provider.GetService<IPropagationExecutionScope>();
+
+        Assert.NotNull(executionScope);
+    }
+
+    [Fact]
     public void MapProperty_PropagatorRoundTrips_ThroughDI()
     {
         var services = new ServiceCollection();

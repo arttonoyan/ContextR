@@ -2,6 +2,7 @@ using ContextR.Hosting.AspNetCore.Internal;
 using ContextR.Propagation;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace ContextR.Hosting.AspNetCore;
 
@@ -29,6 +30,7 @@ public static class ContextRAspNetCoreRegistrationExtensions
         where TContext : class
     {
         var domain = builder.Domain;
+        builder.Services.TryAddSingleton<IPropagationExecutionScope, AsyncLocalPropagationExecutionScope>();
         builder.Services.AddSingleton<IStartupFilter>(
             _ => new ContextStartupFilter<TContext>(domain));
 

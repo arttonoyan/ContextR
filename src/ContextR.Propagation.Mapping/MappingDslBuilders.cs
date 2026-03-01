@@ -61,10 +61,12 @@ public sealed class ContextMapBuilder<TContext>
                 sp.GetService<IContextTransportPolicy<TContext>>(),
                 requirement));
 
+        _registrationBuilder.Services.TryAddSingleton<IPropagationExecutionScope, AsyncLocalPropagationExecutionScope>();
         _registrationBuilder.Services.TryAddSingleton<IContextPropagator<TContext>>(sp =>
             new MappingContextPropagator<TContext>(
                 sp.GetServices<IPropertyMapping<TContext>>(),
                 sp,
+                sp.GetRequiredService<IPropagationExecutionScope>(),
                 sp.GetService<ContextPropagationFailureHandlerRegistry<TContext>>()));
 
         return this;

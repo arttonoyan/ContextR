@@ -64,10 +64,12 @@ public static class ContextRPropagationExtensions
                 sp.GetService<IContextPayloadSerializer<TContext>>(),
                 sp.GetService<IContextTransportPolicy<TContext>>()));
 
+        builder.Services.TryAddSingleton<IPropagationExecutionScope, AsyncLocalPropagationExecutionScope>();
         builder.Services.TryAddSingleton<IContextPropagator<TContext>>(sp =>
             new MappingContextPropagator<TContext>(
                 sp.GetServices<IPropertyMapping<TContext>>(),
                 sp,
+                sp.GetRequiredService<IPropagationExecutionScope>(),
                 sp.GetService<ContextPropagationFailureHandlerRegistry<TContext>>()));
 
         return builder;

@@ -6,11 +6,20 @@ namespace ContextR.Hosting.AspNetCore.Internal;
 internal sealed class ContextMiddleware<TContext> where TContext : class
 {
     private readonly RequestDelegate _next;
+    private readonly IPropagationExecutionScope _executionScope;
     private readonly string? _domain;
 
     public ContextMiddleware(RequestDelegate next, string? domain = null)
+        : this(next, new AsyncLocalPropagationExecutionScope(), domain)
+    { }
+
+    public ContextMiddleware(
+        RequestDelegate next,
+        IPropagationExecutionScope executionScope,
+        string? domain = null)
     {
         _next = next;
+        _executionScope = executionScope;
         _domain = domain;
     }
 
@@ -19,7 +28,7 @@ internal sealed class ContextMiddleware<TContext> where TContext : class
         IContextPropagator<TContext> propagator,
         IContextWriter writer)
     {
-        using var _ = PropagationExecutionContext.BeginDomainScope(_domain);
+        using var _ = _executionScope.BeginDomainScope(_domain);
         var context = propagator.Extract(
             httpContext.Request.Headers,
             static (headers, key) => headers.TryGetValue(key, out var values) ? (string?)values : null);

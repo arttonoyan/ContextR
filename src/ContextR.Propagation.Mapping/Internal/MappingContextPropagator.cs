@@ -12,10 +12,12 @@ internal sealed class MappingContextPropagator<TContext> : IContextPropagator<TC
     private readonly IPropertyMapping<TContext>[] _mappings;
     private readonly IServiceProvider _services;
     private readonly ContextPropagationFailureHandlerRegistry<TContext>? _failureRegistry;
+    private readonly IPropagationExecutionScope _executionScope;
 
     public MappingContextPropagator(
         IEnumerable<IPropertyMapping<TContext>> mappings,
         IServiceProvider? services = null,
+        IPropagationExecutionScope? executionScope = null,
         ContextPropagationFailureHandlerRegistry<TContext>? failureRegistry = null)
     {
         if (!HasParameterlessConstructor())
@@ -27,6 +29,7 @@ internal sealed class MappingContextPropagator<TContext> : IContextPropagator<TC
 
         _mappings = mappings.ToArray();
         _services = services ?? NoServices;
+        _executionScope = executionScope ?? new AsyncLocalPropagationExecutionScope();
         _failureRegistry = failureRegistry;
     }
 
@@ -158,7 +161,7 @@ internal sealed class MappingContextPropagator<TContext> : IContextPropagator<TC
             Key = key,
             Direction = direction,
             Reason = reason,
-            Domain = PropagationExecutionContext.CurrentDomain,
+            Domain = _executionScope.CurrentDomain,
             RawValue = rawValue,
             Exception = exception
         };

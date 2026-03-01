@@ -13,21 +13,32 @@ public class ContextPropagationHandler<TContext> : DelegatingHandler
 {
     private readonly IContextAccessor _accessor;
     private readonly IContextPropagator<TContext> _propagator;
+    private readonly IPropagationExecutionScope _executionScope;
     private readonly string? _domain;
 
     /// <inheritdoc cref="ContextPropagationHandler{TContext}" />
     public ContextPropagationHandler(IContextAccessor accessor, IContextPropagator<TContext> propagator)
-        : this(accessor, propagator, domain: null)
+        : this(accessor, propagator, domain: null, executionScope: new AsyncLocalPropagationExecutionScope())
     {
     }
+
+    /// <inheritdoc cref="ContextPropagationHandler{TContext}" />
+    public ContextPropagationHandler(
+        IContextAccessor accessor,
+        IContextPropagator<TContext> propagator,
+        IPropagationExecutionScope executionScope)
+        : this(accessor, propagator, domain: null, executionScope: executionScope)
+    { }
 
     internal ContextPropagationHandler(
         IContextAccessor accessor,
         IContextPropagator<TContext> propagator,
-        string? domain)
+        string? domain,
+        IPropagationExecutionScope? executionScope = null)
     {
         _accessor = accessor;
         _propagator = propagator;
+        _executionScope = executionScope ?? new AsyncLocalPropagationExecutionScope();
         _domain = domain;
     }
 
@@ -42,7 +53,7 @@ public class ContextPropagationHandler<TContext> : DelegatingHandler
 
         if (context is not null)
         {
-            using var _ = PropagationExecutionContext.BeginDomainScope(_domain);
+            using var _ = _executionScope.BeginDomainScope(_domain);
             _propagator.Inject(context, request.Headers,
                 static (headers, key, value) => headers.TryAddWithoutValidation(key, value));
         }

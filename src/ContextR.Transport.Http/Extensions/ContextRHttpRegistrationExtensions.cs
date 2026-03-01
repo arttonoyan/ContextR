@@ -30,11 +30,13 @@ public static class ContextRHttpRegistrationExtensions
         where TContext : class
     {
         var domain = builder.Domain;
+        builder.Services.TryAddSingleton<IPropagationExecutionScope, AsyncLocalPropagationExecutionScope>();
 
         builder.Services.TryAddScoped(sp => new ContextPropagationHandler<TContext>(
             sp.GetRequiredService<IContextAccessor>(),
             sp.GetRequiredService<IContextPropagator<TContext>>(),
-            domain));
+            domain,
+            sp.GetRequiredService<IPropagationExecutionScope>()));
 
         builder.Services.ConfigureHttpClientDefaults(http =>
             http.AddHttpMessageHandler<ContextPropagationHandler<TContext>>());

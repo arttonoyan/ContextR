@@ -1,4 +1,5 @@
 using ContextR.Transport.Http;
+using ContextR.Propagation;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -22,6 +23,7 @@ public static class ContextRHttpClientBuilderExtensions
     public static IHttpClientBuilder AddContextRHandler<TContext>(this IHttpClientBuilder builder)
         where TContext : class
     {
+        builder.Services.TryAddSingleton<IPropagationExecutionScope, AsyncLocalPropagationExecutionScope>();
         builder.Services.TryAddScoped<ContextPropagationHandler<TContext>>();
         return builder.AddHttpMessageHandler<ContextPropagationHandler<TContext>>();
     }

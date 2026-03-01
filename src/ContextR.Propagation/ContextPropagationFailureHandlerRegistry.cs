@@ -6,6 +6,7 @@ namespace ContextR.Propagation;
 public sealed class ContextPropagationFailureHandlerRegistry<TContext>
     where TContext : class
 {
+    private const string DefaultDomainKey = "__default__";
     private readonly Dictionary<string, Func<IServiceProvider, IContextPropagationFailureHandler<TContext>>> _factories =
         new(StringComparer.Ordinal);
 
@@ -28,7 +29,7 @@ public sealed class ContextPropagationFailureHandlerRegistry<TContext>
         if (_factories.TryGetValue(domainKey, out var domainFactory))
             return domainFactory(services);
 
-        if (_factories.TryGetValue(PropagationExecutionContext.DefaultDomainKey, out var defaultFactory))
+        if (_factories.TryGetValue(DefaultDomainKey, out var defaultFactory))
             return defaultFactory(services);
 
         return null;
@@ -36,6 +37,6 @@ public sealed class ContextPropagationFailureHandlerRegistry<TContext>
 
     private static string NormalizeDomain(string? domain)
     {
-        return string.IsNullOrEmpty(domain) ? PropagationExecutionContext.DefaultDomainKey : domain;
+        return string.IsNullOrEmpty(domain) ? DefaultDomainKey : domain;
     }
 }
