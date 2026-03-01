@@ -98,13 +98,13 @@ gRPC metadata keys are treated as lowercase in transport helpers. ContextR gRPC 
 For mapped complex properties, configure a payload strategy explicitly:
 
 ```csharp
-ctx.Add<RequestContext>(reg => reg
-    .UseInlineJsonPayloads<RequestContext>(o =>
+ctx.Add<UserContext>(reg => reg
+    .UseInlineJsonPayloads<UserContext>(o =>
     {
         o.MaxPayloadBytes = 4096;
         o.OversizeBehavior = ContextOversizeBehavior.FailFast;
     })
-    .MapProperty(c => c.Tags, "x-tags")
+    .MapProperty(c => c.Roles, "x-roles")
     .UseGlobalGrpcPropagation());
 ```
 

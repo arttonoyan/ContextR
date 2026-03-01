@@ -1,670 +1,178 @@
 # ContextR
 
-A lightweight, generic library for propagating ambient execution context across async flows in .NET applications. ContextR provides `AsyncLocal`-based storage, immutable snapshots, scope-based activation, and domain isolation -- giving you full control over how context values travel through your application.
+Context propagation for distributed .NET systems without brittle glue code.
 
-## Why ContextR?
+ContextR helps you move request, tenant, user, and operational metadata across async boundaries, HTTP, and gRPC in a consistent and testable way.
 
-In async .NET applications, passing contextual data (user identity, tenant, correlation IDs, feature flags) through every method signature is tedious and error-prone. `AsyncLocal<T>` solves part of this -- it makes data ambient so any code on the same `ExecutionContext` can read it without explicit parameters.
+## Why This Project Was Born
 
-But raw `AsyncLocal` has sharp edges:
+In our system, a gateway fronts multiple standalone microservices running in an internal network.
 
-- `Task.Run` gets a copy that can go stale when the parent clears the value
-- Background jobs and `ThreadPool.QueueUserWorkItem` may not capture `ExecutionContext` at all
-- There is no built-in mechanism to temporarily override and restore context values
+The gateway supports multiple authentication schemes. After authentication succeeds, it transforms the token into a typed `UserContext` (for example `TenantId`, `UserId`, and related fields) and forwards that context to downstream services.
 
-ContextR wraps `AsyncLocal` with a clean, tested API that handles these scenarios through **snapshots** and **scopes**.
+The challenge is that downstream services also call each other over HTTP, gRPC, and distributed events.  
+So `UserContext` must propagate consistently across all communication layers, not only at the gateway edge.
 
-## Core mental model
+Over time, engineers started spending too much effort on context plumbing:
 
-**Bank account analogy:**
+- how to retrieve context safely
+- how to pass it across async boundaries
+- how to propagate it through transport-specific handlers/interceptors
 
-| | Bank analogy | ContextR |
-|---|---|---|
-| `IContextAccessor` | **Live bank balance** -- reflecting every deposit and withdrawal immediately | Reads from `AsyncLocal`, reflects every `SetContext()` and `BeginScope()` |
-| `IContextSnapshot` | **Bank statement** -- the balance at a fixed point in time, always the same no matter when you read it | Captured once, never changes |
-| `IContextWriter` | **Making a deposit or withdrawal** | Writes to `AsyncLocal` directly |
-| `BeginScope()` | Temporarily applying statement values to the live balance view, then restoring the original when done | Writes snapshot values into `AsyncLocal`, restores previous state on dispose |
-| **Domain** | **Different accounts at the same bank** -- checking vs savings, each with its own balance | Independent storage slots identified by a string domain name |
+Context concerns leaked into business logic, created repetitive boilerplate, and increased the chance of mistakes.
 
-Your service code should use the **statement** (snapshot). Reserve the **live balance** (accessor) for infrastructure that must read the current ambient state.
+Our goal became simple: engineers should not think about context propagation. It should just work.
 
-## Quick start
+As implementation evolved, we discovered deeper platform challenges:
 
-### Install
+- `HttpClient` handler scope behavior and pipeline reuse (see [HTTP Client Handler Scope Deep Dive](docs/HttpClientHandlerScopes.md))
+- singleton infrastructure components that still need contextual data
+- subtle `AsyncLocal` behavior across async flows and service lifetimes
 
-```
-dotnet add package ContextR
-```
+Those lessons made it clear we needed one structured, unified model for context propagation across the entire platform.
 
-### Register services
+ContextR was born from that need.
 
-```csharp
-builder.Services.AddContextR(ctx =>
-{
-    ctx.Add<UserContext>();
-    ctx.Add<TenantContext>();
-});
-```
+## What You Get
 
-### Read and write context
+- Snapshot-first model for safer async/background propagation
+- Property mapping DSL for HTTP/gRPC keys
+- Optional required/optional property contracts
+- Payload strategies for complex types (`InlineJson`, `Chunking`, token-ready)
+- Domain-aware failure hooks and runtime oversize strategy policy
+- Dedicated transport packages for ASP.NET Core, `HttpClient`, and gRPC
 
-```csharp
-public class OrderService
-{
-    private readonly IContextAccessor _accessor;
-    private readonly IContextWriter _writer;
+## When To Use ContextR
 
-    public OrderService(IContextAccessor accessor, IContextWriter writer)
-    {
-        _accessor = accessor;
-        _writer = writer;
-    }
+Use ContextR when you need:
 
-    public void Process()
-    {
-        _writer.SetContext(new UserContext("alice"));
-        var user = _accessor.GetContext<UserContext>();
-        Console.WriteLine(user?.UserId); // "alice"
-    }
-}
-```
-
-### Snapshots and scopes
-
-```csharp
-// Capture current ambient state into an immutable snapshot
-var snapshot = _accessor.CreateSnapshot();
-
-// Or create a snapshot from a specific value (no AsyncLocal mutation)
-var snapshot = _accessor.CreateSnapshot(new UserContext("bob"));
-
-// Activate the snapshot -- writes values into AsyncLocal
-using (snapshot.BeginScope())
-{
-    // All code here sees snapshot values via IContextAccessor
-    var user = _accessor.GetContext<UserContext>(); // "bob"
-}
-// Previous ambient state is automatically restored
-```
-
-## Key interfaces
-
-| Interface | Lifetime | Purpose |
-|---|---|---|
-| `IContextAccessor` | Singleton | Reads live ambient context from `AsyncLocal`. Use in infrastructure code. |
-| `IContextWriter` | Singleton | Writes ambient context to `AsyncLocal`. Use to set initial values. |
-| `IContextSnapshot` | Scoped | Immutable captured state. **Recommended for most service code.** Read values directly or activate with `BeginScope()`. |
-| `IContextBuilder` | (config-time) | Fluent builder for registering context types and domains. |
-
-## Generic context model
-
-ContextR is **fully generic**. Any `class` can be a context type. Multiple types coexist simultaneously -- each gets its own independent `AsyncLocal` slot and is included in snapshots automatically:
-
-```csharp
-builder.Services.AddContextR(ctx =>
-{
-    ctx.Add<UserContext>();
-    ctx.Add<TenantContext>();
-    ctx.Add<CorrelationContext>();
-});
-```
-
-Each context type is accessed independently:
-
-```csharp
-var user = _accessor.GetContext<UserContext>();
-var tenant = _accessor.GetContext<TenantContext>();
-var correlation = _accessor.GetContext<CorrelationContext>();
-```
-
-## Usage patterns
-
-### Pattern 1 -- Normal flow (no extra work)
-
-When context is set in the current async flow, it is available everywhere via `IContextAccessor`:
-
-```csharp
-public async Task HandleAsync()
-{
-    var user = _accessor.GetContext<UserContext>();
-    // safe across awaits -- AsyncLocal flows with ExecutionContext
-    await DoWorkAsync();
-}
-```
-
-### Pattern 2 -- Background work or `Task.Run`
-
-When you offload work to `Task.Run` or a background thread, use `BeginScope()` on a snapshot to ensure context is available:
-
-```csharp
-var snapshot = _accessor.CreateSnapshot();
-
-_ = Task.Run(async () =>
-{
-    using (snapshot.BeginScope())
-    {
-        // AsyncLocal is populated with snapshot values
-        var user = _accessor.GetContext<UserContext>();
-        await ProcessAsync(user);
-    }
-    // context is automatically cleaned up
-});
-```
-
-### Pattern 3 -- Batch processing (parallel, isolated contexts)
-
-Create snapshots directly from data -- no `AsyncLocal` mutation, fully parallel-safe:
-
-```csharp
-var workItems = messages
-    .Select(m => (m, snapshot: _accessor.CreateSnapshot(
-        new UserContext(m.UserId))))
-    .ToList();
-
-await Parallel.ForEachAsync(workItems, async (item, ct) =>
-{
-    using (item.snapshot.BeginScope())
-    {
-        await handler.HandleAsync(item.m);
-        // each item has fully isolated context
-    }
-});
-```
-
-### Pattern 4 -- Nested scopes
-
-Scopes are nestable. Each scope saves and restores only the context keys it touches:
-
-```csharp
-_writer.SetContext(new UserContext("root"));
-
-using (snapshotA.BeginScope())
-{
-    // UserContext = A
-    using (snapshotB.BeginScope())
-    {
-        // UserContext = B
-    }
-    // UserContext = A (restored)
-}
-// UserContext = "root" (restored)
-```
-
-### Pattern 5 -- Scoped snapshot via DI
-
-The DI-registered `IContextSnapshot` is scoped -- it captures the ambient state at the time the scope is created. Inject it for immutable, request-scoped access:
-
-```csharp
-public class OrderService
-{
-    private readonly IContextSnapshot _snapshot;
-
-    public OrderService(IContextSnapshot snapshot)
-    {
-        _snapshot = snapshot;
-    }
-
-    public void Process()
-    {
-        var user = _snapshot.GetContext<UserContext>();
-        // snapshot is immutable -- safe across async boundaries
-    }
-}
-```
-
-### Pattern 6 -- Required context (throws when missing)
-
-```csharp
-// Throws InvalidOperationException with a descriptive message if context is not set
-var user = _accessor.GetRequiredContext<UserContext>();
-var tenant = _snapshot.GetRequiredContext<TenantContext>();
-```
-
-## Domain-scoped context
-
-Domains let different parts of your application maintain **isolated context values** for the same type. Think of them as **different accounts at the same bank** -- each domain has its own independent balance.
-
-### Register domains
-
-```csharp
-builder.Services.AddContextR(ctx =>
-{
-    ctx.Add<UserContext>();                                        // default (domainless)
-    ctx.AddDomain("web-api", d => d.Add<UserContext>());          // web-api domain
-    ctx.AddDomain("grpc", d => d.Add<UserContext>());             // grpc domain
-});
-```
-
-### Read and write by domain
-
-```csharp
-_writer.SetContext(new UserContext("default-user"));
-_writer.SetContext("web-api", new UserContext("web-user"));
-_writer.SetContext("grpc", new UserContext("grpc-user"));
-
-_accessor.GetContext<UserContext>();            // "default-user"
-_accessor.GetContext<UserContext>("web-api");   // "web-user"
-_accessor.GetContext<UserContext>("grpc");      // "grpc-user"
-```
-
-### Default domain selector
-
-If your application should route parameterless calls to a specific domain, configure a `DefaultDomainSelector`:
-
-```csharp
-builder.Services.AddContextR(ctx =>
-{
-    ctx.AddDomain("web-api", d => d.Add<UserContext>());
-    ctx.AddDomainPolicy(sp =>
-    {
-        // Resolve the default domain at runtime from IServiceProvider
-        return sp.GetRequiredService<ITenantResolver>().CurrentDomain;
-    });
-});
-```
-
-With this configured, `GetContext<UserContext>()` (no domain argument) delegates to the domain returned by the selector.
+- consistent context propagation across service boundaries
+- multi-tenant or user/correlation context continuity
+- clean separation from `HttpContext` in business logic
+- explicit behavior for oversize payloads and parse failures
 
-### Domain snapshots
+Avoid ContextR for single-process apps that do not cross async/transport boundaries.
 
-Snapshots capture values across all domains and the default slot:
+## 60-Second Quick Start
 
-```csharp
-// Capture everything
-var snapshot = _accessor.CreateSnapshot();
-snapshot.GetContext<UserContext>();            // default value
-snapshot.GetContext<UserContext>("web-api");   // web-api value
-
-// Create a snapshot for a specific domain
-var webSnapshot = _accessor.CreateSnapshot("web-api", new UserContext("scoped"));
-```
+Install:
 
-## How `AsyncLocal` works -- what you need to know
-
-ContextR stores state using `System.Threading.AsyncLocal<T>`, the same mechanism used by `IHttpContextAccessor` in ASP.NET Core and `Activity.Current` in diagnostics.
-
-| Scenario | Context flows? | Action needed |
-|---|---|---|
-| `await` calls | Yes | None |
-| `Task.Run(...)` | Copy-on-write | Use snapshot |
-| `ThreadPool.QueueUserWorkItem` | No | Use snapshot |
-| `new Thread(...)` | No | Use snapshot |
-| Fire-and-forget (`_ = DoAsync()`) | Fragile | Use snapshot |
-
-### The snapshot solves this
-
-The snapshot captures all context values at a point in time into an immutable object. `BeginScope()` writes those values into the current `AsyncLocal`, and `Dispose()` restores the previous state. This gives you:
-
-- Reliable propagation across any boundary
-- No interference with the parent flow (scoped to the current `ExecutionContext`)
-- Automatic cleanup via `using`
-
-## Recommendations
-
-### Prefer snapshots in service code
-
-Use `IContextAccessor` / `IContextWriter` only for infrastructure. For service-level code, prefer `IContextSnapshot` (injected via DI) or manually created snapshots:
-
-```csharp
-// Reading -- use snapshot
-var user = _snapshot.GetContext<UserContext>();
-
-// Background work -- activate snapshot
-_ = Task.Run(async () =>
-{
-    using (snapshot.BeginScope())
-    {
-        await DoWorkAsync();
-    }
-});
-```
-
-### Always use `using` with `BeginScope()`
-
-```csharp
-// Correct
-using (snapshot.BeginScope())
-{
-    await DoWorkAsync();
-}
-
-// Incorrect -- context leaks into subsequent work
-snapshot.BeginScope();
-await DoWorkAsync();
-```
-
-### Capture snapshots early
-
-Create the snapshot while context is still alive:
-
-```csharp
-// Correct -- captured while context is alive
-_writer.SetContext(new UserContext("alice"));
-var snapshot = _accessor.CreateSnapshot();
-queue.Enqueue(() => UseSnapshot(snapshot));
-
-// Risky -- context may be gone when job runs
-queue.Enqueue(() =>
-{
-    var snapshot = _accessor.CreateSnapshot(); // may capture empty context
-});
-```
-
-### Do not mutate context objects from snapshots
-
-Snapshots hold references, not deep copies. Treat context objects as read-only.
-
-## Thread safety
-
-The underlying storage uses `ConcurrentDictionary<ContextKey, AsyncLocal<ContextHolder>>`. All read and write operations are thread-safe without explicit locking. Snapshots are immutable after creation. Concurrent `BeginScope()` calls on different threads operate on independent `AsyncLocal` slots and do not interfere with each other.
-
-## Builder validation
-
-ContextR validates configuration at startup:
-
-- If domain registrations exist but no default (domainless) `Add<T>()` is configured and no `DefaultDomainSelector` is provided, `AddContextR` throws `InvalidOperationException`. This prevents runtime errors when `GetContext<T>()` is called without a domain argument.
-
-## API reference
-
-### Extension methods on `IContextAccessor`
-
-| Method | Description |
-|---|---|
-| `CreateSnapshot()` | Captures all current ambient values (across all domains) into an immutable snapshot. |
-| `CreateSnapshot<T>(T context)` | Creates a snapshot containing only the provided value in the default domain. No `AsyncLocal` mutation. |
-| `CreateSnapshot<T>(string domain, T context)` | Creates a snapshot containing only the provided value for the specified domain. No `AsyncLocal` mutation. |
-| `GetRequiredContext<T>()` | Returns the context value or throws `InvalidOperationException` if missing. |
-| `GetRequiredContext<T>(string domain)` | Returns the domain-specific context value or throws. |
-
-### Extension methods on `IContextSnapshot`
-
-| Method | Description |
-|---|---|
-| `GetRequiredContext<T>()` | Returns the captured value or throws `InvalidOperationException`. |
-| `GetRequiredContext<T>(string domain)` | Returns the domain-specific captured value or throws. |
-
-## HTTP context propagation
-
-ContextR provides transport packages that propagate context across HTTP boundaries. Everything is configured within the unified `AddContextR` fluent API -- no separate registration calls needed.
-
-### Install
-
-```
+```bash
 dotnet add package ContextR
 dotnet add package ContextR.Propagation
 dotnet add package ContextR.Propagation.Mapping
-dotnet add package ContextR.Propagation.InlineJson
-dotnet add package ContextR.Propagation.Chunking
-dotnet add package ContextR.Propagation.Token
 dotnet add package ContextR.Hosting.AspNetCore
 dotnet add package ContextR.Transport.Http
-dotnet add package ContextR.Transport.Grpc
 ```
 
-### Full example -- ASP.NET Core API with outgoing HTTP calls
+Register:
 
 ```csharp
 builder.Services.AddContextR(ctx =>
 {
-    ctx.Add<CorrelationContext>(reg => reg
+    ctx.Add<UserContext>(reg => reg
         .MapProperty(c => c.TraceId, "X-Trace-Id")
-        .MapProperty(c => c.SpanId, "X-Span-Id")
-        .UseAspNetCore()
-        .UseGlobalHttpPropagation());
-
-    ctx.Add<TenantContext>(reg => reg
         .MapProperty(c => c.TenantId, "X-Tenant-Id")
+        .MapProperty(c => c.UserId, "X-User-Id")
         .UseAspNetCore()
         .UseGlobalHttpPropagation());
 });
-```
 
-This single configuration achieves:
-
-1. **Incoming requests** -- middleware automatically extracts `X-Trace-Id`, `X-Span-Id`, and `X-Tenant-Id` from HTTP headers into the ambient context
-2. **Outgoing `HttpClient` calls** -- a `DelegatingHandler` automatically injects those same headers into every outgoing request created by `IHttpClientFactory`
-
-### Property mapping
-
-`MapProperty` maps context class properties to transport key names (HTTP headers, gRPC metadata keys, etc.). The framework auto-generates an `IContextPropagator<T>` from the mappings:
-
-```csharp
-ctx.Add<CorrelationContext>(reg => reg
-    .MapProperty(c => c.TraceId, "X-Trace-Id")    // string
-    .MapProperty(c => c.RequestId, "X-Request-Id") // Guid (IParsable)
-    .MapProperty(c => c.RetryCount, "X-Retry"));   // int (IParsable)
-```
-
-Supported property types: `string`, any type implementing `IParsable<T>` (all numeric types, `Guid`, `DateTime`, etc.), and types convertible via `Convert.ChangeType`.
-
-### Advanced mapping DSL (required/optional)
-
-For stricter contracts, use the mapping DSL:
-
-```csharp
-ctx.Add<CorrelationContext>(reg => reg
-    .Map(m => m
-        .Property(c => c.TraceId, "X-Trace-Id").Required()
-        .Property(c => c.SpanId, "X-Span-Id").Optional()));
-```
-
-`Required()` means missing or invalid value fails propagation by default; `Optional()` skips missing/invalid values.
-
-### Complex payload strategy (List/array/custom class)
-
-For non-primitive mapped properties, you can opt into inline JSON payloads with deterministic size policy:
-
-```csharp
-builder.Services.AddContextR(ctx =>
+public sealed class UserContext
 {
-    ctx.Add<RequestContext>(reg => reg
-        .UseInlineJsonPayloads<RequestContext>(o =>
-        {
-            o.MaxPayloadBytes = 4096;
-            o.OversizeBehavior = ContextOversizeBehavior.FailFast;
-        })
-        .MapProperty(c => c.Tags, "X-Tags")
-        .MapProperty(c => c.Payload, "X-Payload")
-        .UseAspNetCore()
-        .UseGlobalHttpPropagation());
-});
-```
-
-`ContextOversizeBehavior` options:
-
-- `FailFast` -- throw deterministic exception when mapped payload exceeds size limit
-- `SkipProperty` -- skip only the oversize mapped property and continue other mappings
-- `ChunkProperty` -- split oversize payload into derived chunk keys (requires `ContextR.Propagation.Chunking`)
-- `FallbackToToken` -- reserved for token/reference strategy; fails deterministically until token runtime is wired
-
-Hybrid policy is supported with the mapping DSL:
-
-```csharp
-ctx.Add<RequestContext>(reg => reg
-    .UseInlineJsonPayloads<RequestContext>(o =>
-    {
-        o.MaxPayloadBytes = 256;
-        o.OversizeBehavior = ContextOversizeBehavior.SkipProperty; // context default
-    })
-    .UseChunkingPayloads<RequestContext>()
-    .Map(m => m
-        .DefaultOversizeBehavior(ContextOversizeBehavior.SkipProperty)
-        .Property(c => c.Tags, "X-Tags").OversizeBehavior(ContextOversizeBehavior.ChunkProperty).Optional()
-        .Property(c => c.Payload, "X-Payload").Optional()));
-```
-
-You can also add a runtime oversize strategy policy and keep mappings declarative:
-
-```csharp
-ctx.Add<RequestContext>(reg => reg
-    .UseInlineJsonPayloads<RequestContext>(o => o.MaxPayloadBytes = 256)
-    .UseChunkingPayloads<RequestContext>()
-    .UseStrategyPolicy<RequestContext, RequestStrategyPolicy>()
-    .MapProperty(c => c.Tags, "X-Tags")
-    .MapProperty(c => c.Payload, "X-Payload"));
-
-public sealed class RequestStrategyPolicy : IContextPropagationStrategyPolicy<RequestContext>
-{
-    public ContextOversizeBehavior Select(ContextPropagationStrategyPolicyContext context)
-    {
-        return context.Key == "X-Tags"
-            ? ContextOversizeBehavior.ChunkProperty
-            : ContextOversizeBehavior.SkipProperty;
-    }
+    public string? TraceId { get; set; }
+    public string? TenantId { get; set; }
+    public string? UserId { get; set; }
 }
 ```
 
-Or use a delegate resolved from DI:
+Result:
 
-```csharp
-ctx.Add<RequestContext>(reg => reg
-    .UseInlineJsonPayloads<RequestContext>(o => o.MaxPayloadBytes = 256)
-    .UseChunkingPayloads<RequestContext>()
-    .UseStrategyPolicy<RequestContext>(sp => policyContext =>
-        policyContext.Key == "X-Tags"
-            ? ContextOversizeBehavior.ChunkProperty
-            : ContextOversizeBehavior.SkipProperty)
-    .MapProperty(c => c.Tags, "X-Tags")
-    .MapProperty(c => c.Payload, "X-Payload"));
-```
+- incoming middleware extracts request headers into context
+- outgoing `HttpClient` calls automatically inject mapped headers
+- your app code reads context from ContextR abstractions, not transport APIs
 
-Oversize decision precedence:
+## Core Interfaces: Why Both Exist
 
-- property override (`OversizeBehavior(...)` / `MapProperty(..., oversizeBehaviorOverride)`)
-- mapping default (`DefaultOversizeBehavior(...)`)
-- runtime strategy policy (`UseStrategyPolicy(...)`)
-- transport policy default (`UseInlineJsonPayloads(...).OversizeBehavior`)
-- `FailFast`
+Engineers often ask why ContextR has both `IContextAccessor` and `IContextSnapshot`.
 
-### Propagation failure handling
+### `IContextAccessor` (singleton, live view)
 
-You can hook failures (required missing, parse issues, oversize, token-fallback unavailable) and choose behavior:
+- Reads current ambient value from `AsyncLocal` on every call
+- Reflects the value that is active right now (middleware writes, `BeginScope()` overrides, cleanup restores/clears)
+- Used by integration plumbing that runs at execution time (`HttpClient` handlers, gRPC interceptors, middleware)
 
-```csharp
-ctx.Add<RequestContext>(reg => reg
-    .OnPropagationFailure<RequestContext>(failure =>
-    {
-        logger.LogWarning(
-            "Propagation failure: {Reason} key={Key} dir={Direction}",
-            failure.Reason, failure.Key, failure.Direction);
+Why singleton?  
+`IContextAccessor` is stateless. It does not store request data in the instance; it only reads from ambient `AsyncLocal` state. A singleton accessor is safe and lets long-lived infrastructure components read the live context consistently.
 
-        return PropagationFailureAction.SkipProperty;
-    })
-    .Map(m => m
-        .Property(c => c.TraceId, "X-Trace-Id").Required()
-        .Property(c => c.Payload, "X-Payload").Optional()));
-```
+### `IContextSnapshot` (scoped, stable view)
 
-### Custom propagator
+- Captures context once for a scope (typically request scope)
+- Immutable view for business/application code
+- Safe to pass to background work and later re-activate with `BeginScope()`
 
-For full control, implement `IContextPropagator<T>` directly:
+### Why snapshot cannot replace accessor everywhere
 
-```csharp
-public class CorrelationPropagator : IContextPropagator<CorrelationContext>
-{
-    public void Inject<TCarrier>(CorrelationContext context, TCarrier carrier,
-        Action<TCarrier, string, string> setter)
-    {
-        setter(carrier, "X-Trace-Id", context.TraceId);
-        if (context.SpanId is not null)
-            setter(carrier, "X-Span-Id", context.SpanId);
-    }
+Outbound propagation components need the **currently active** ambient context at the exact moment they run.  
+`BeginScope()` works by writing snapshot values into `AsyncLocal`; handlers then read through `IContextAccessor`.  
+If handlers depended only on snapshots, they would not know which snapshot should be active in concurrent scenarios (for example parallel `Task.Run`/batch work where multiple snapshots can exist).
 
-    public CorrelationContext? Extract<TCarrier>(TCarrier carrier,
-        Func<TCarrier, string, string?> getter)
-    {
-        var traceId = getter(carrier, "X-Trace-Id");
-        if (traceId is null) return null;
+Practical rule:
 
-        return new CorrelationContext
-        {
-            TraceId = traceId,
-            SpanId = getter(carrier, "X-Span-Id")
-        };
-    }
-}
-```
+- business logic: prefer `IContextSnapshot`
+- infrastructure/integration pipeline: use `IContextAccessor`
 
-Register it with `UsePropagator`:
+## Marketing Message (Site Hero Candidate)
 
-```csharp
-ctx.Add<CorrelationContext>(reg => reg
-    .UsePropagator<CorrelationContext, CorrelationPropagator>()
-    .UseAspNetCore()
-    .UseGlobalHttpPropagation());
-```
+Build once. Propagate everywhere.  
+ContextR makes context flow reliable across async code, HTTP, gRPC, and background processing without turning your codebase into header plumbing.
 
-### Per-client HTTP propagation
+## Documentation Hub
 
-Instead of propagating context to all `HttpClient` instances, you can target specific named clients:
+- [Getting Started](docs/GettingStarted.md)
+- [Usage Cookbook](docs/UsageCookbook.md)
+- [Q&A / FAQ](docs/FAQ.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Propagation Mapping](docs/ContextR.Propagation.md)
+- [Inline JSON Strategy](docs/ContextR.Propagation.InlineJson.md)
+- [Chunking Strategy](docs/ContextR.Propagation.Chunking.md)
+- [Token Strategy Contracts](docs/ContextR.Propagation.Token.md)
+- [ASP.NET Core Transport](docs/ContextR.AspNetCore.md)
+- [HTTP Client Transport](docs/ContextR.Http.md)
+- [HTTP Client Handler Scope Deep Dive](docs/HttpClientHandlerScopes.md)
+- [gRPC Transport](docs/ContextR.Grpc.md)
 
-```csharp
-// Register ContextR with middleware but no global propagation
-builder.Services.AddContextR(ctx =>
-{
-    ctx.Add<CorrelationContext>(reg => reg
-        .MapProperty(c => c.TraceId, "X-Trace-Id")
-        .UseAspNetCore());
-});
+## Samples
 
-// Add propagation only to specific clients
-builder.Services.AddHttpClient("payment-api")
-    .AddContextRHandler<CorrelationContext>();
+Real-world examples are available under [`samples`](samples):
 
-builder.Services.AddHttpClient("logging-api"); // no propagation
-```
+- [Multi-tenant SaaS propagation](samples/MultiTenantSaaS/README.md)
+- [Mixed HTTP + gRPC microservices](samples/MicroservicesHttpGrpc/README.md)
+- [Background jobs propagation](samples/BackgroundJobs/README.md)
+- [Replacing `IHttpContextAccessor` usage with snapshot model](samples/HttpContextAccessorReplacement/README.md)
+- [JWT vs operational context propagation](samples/JwtAdjunctContext/README.md)
 
-### Domain-scoped HTTP propagation
+## Package Map
 
-When the same context type is registered under multiple domains with different propagation needs, the transport extensions are domain-aware:
-
-```csharp
-builder.Services.AddContextR(ctx =>
-{
-    ctx.Add<CorrelationContext>()
-       .AddDomain("web-api", d => d.Add<CorrelationContext>(reg => reg
-           .MapProperty(c => c.TraceId, "X-Trace-Id")
-           .UseAspNetCore()
-           .UseGlobalHttpPropagation()))
-       .AddDomain("internal", d => d.Add<CorrelationContext>(reg => reg
-           .MapProperty(c => c.TraceId, "X-Internal-Trace")
-           .UseAspNetCore()
-           .UseGlobalHttpPropagation()));
-});
-```
-
-Each domain's middleware and handler operate on their own isolated context slot.
-
-## What ContextR is NOT
-
-- **Not tied to HTTP, gRPC, or any transport.** The core library is a pure context-propagation library. Integration with specific transports is provided by dedicated packages.
-- **Not a replacement for `Activity` / distributed tracing.** `Activity` is for trace IDs and spans. ContextR is for application-level context values.
-- **Not a DI container.** It stores ambient values in `AsyncLocal`, not in the service provider.
-
-## Packages
-
-| Package | Description | Status |
-|---|---|---|
-| `ContextR` | Core library -- storage, snapshots, scopes, and domains | Available |
-| `ContextR.Propagation` | Propagation contracts + runtime registration extensions (`IContextPropagator<T>`, `UsePropagator`, payload/failure policy hooks) | Available |
-| `ContextR.Propagation.Mapping` | `MapProperty` and `Map(...)` DSL for auto-generated propagators and policy-driven property mapping | Available |
-| `ContextR.Propagation.InlineJson` | Strategy package for JSON serialization of non-primitive mapped properties with size policy | Available |
-| `ContextR.Propagation.Chunking` | Strategy package for chunk split/reassembly of oversize mapped payloads | Available |
-| `ContextR.Propagation.Token` | Token/reference contracts for large payload transport (`IContextPayloadStore`, token codec) | Available |
-| `ContextR.Transport.Http` | `DelegatingHandler` for propagating context to outgoing `HttpClient` requests | Available |
-| `ContextR.Hosting.AspNetCore` | ASP.NET Core middleware for extracting context from incoming HTTP request headers | Available |
-| `ContextR.Transport.Grpc` | gRPC client/server interceptors | Available |
-| `ContextR.Kafka` | Kafka producer/consumer context propagation | Planned |
-
-## Documentation
-
-| Document | Description |
+| Package | Purpose |
 |---|---|
-| [Architecture and Design Decisions](docs/ARCHITECTURE.md) | Internal architecture, storage design, Set vs SetRaw, domain-scoping design, propagator design, DI registration rationale, FAQ |
-| [ContextR.Propagation](docs/ContextR.Propagation.md) | Property mapping API, `MappingContextPropagator`, custom propagator integration |
-| [ContextR.Propagation.InlineJson](docs/ContextR.Propagation.InlineJson.md) | Inline JSON strategy, size limits, oversize behaviors |
-| [ContextR.Propagation.Chunking](docs/ContextR.Propagation.Chunking.md) | Chunk strategy, derived key format, and registration |
-| [ContextR.Propagation.Token](docs/ContextR.Propagation.Token.md) | Token/reference contracts for large payload storage strategies |
-| [ContextR.Transport.Http](docs/ContextR.Http.md) | HTTP client propagation, global vs per-client, domain-aware handler |
-| [ContextR.Hosting.AspNetCore](docs/ContextR.AspNetCore.md) | ASP.NET Core middleware, `IStartupFilter`, domain-aware extraction |
-| [ContextR.Transport.Grpc](docs/ContextR.Grpc.md) | gRPC propagation/extraction, client/server interceptors, domain-aware behavior |
+| `ContextR` | Core ambient context, snapshots, scopes, domains |
+| `ContextR.Propagation` | Propagation contracts + registration APIs |
+| `ContextR.Propagation.Mapping` | `MapProperty` and advanced `Map(...)` DSL |
+| `ContextR.Propagation.InlineJson` | JSON serializer strategy for complex properties |
+| `ContextR.Propagation.Chunking` | Chunk split/reassembly for oversize payloads |
+| `ContextR.Propagation.Token` | Token/reference propagation contracts |
+| `ContextR.Hosting.AspNetCore` | Incoming ASP.NET Core extraction middleware |
+| `ContextR.Transport.Http` | Outgoing `HttpClient` propagation handler |
+| `ContextR.Transport.Grpc` | gRPC client/server propagation interceptors |
+
+## Design Principles
+
+- explicit over implicit behavior
+- transport-agnostic core, transport-specific extensions
+- safe defaults with configurable policy where needed
+- testable abstractions first (domain and execution-scope aware)
+
+## Status
+
+ContextR is actively evolving. Breaking changes may occur while architecture and package boundaries are refined.

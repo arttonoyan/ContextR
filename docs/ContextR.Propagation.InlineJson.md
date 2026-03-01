@@ -17,14 +17,14 @@ Dependencies: `ContextR`, `ContextR.Propagation`.
 ```csharp
 builder.Services.AddContextR(ctx =>
 {
-    ctx.Add<RequestContext>(reg => reg
-        .UseInlineJsonPayloads<RequestContext>(o =>
+    ctx.Add<UserContext>(reg => reg
+        .UseInlineJsonPayloads<UserContext>(o =>
         {
             o.MaxPayloadBytes = 4096;
             o.OversizeBehavior = ContextOversizeBehavior.FailFast;
         })
-        .MapProperty(c => c.Tags, "X-Tags")
-        .MapProperty(c => c.Payload, "X-Payload"));
+        .MapProperty(c => c.Roles, "X-Roles")
+        .MapProperty(c => c.Profile, "X-Profile"));
 });
 ```
 
@@ -38,14 +38,14 @@ builder.Services.AddContextR(ctx =>
 You can override this default behavior via propagation failure handler:
 
 ```csharp
-ctx.Add<RequestContext>(reg => reg
-    .OnPropagationFailure<RequestContext>(_ => PropagationFailureAction.SkipProperty)
-    .UseInlineJsonPayloads<RequestContext>(o =>
+ctx.Add<UserContext>(reg => reg
+    .OnPropagationFailure<UserContext>(_ => PropagationFailureAction.SkipProperty)
+    .UseInlineJsonPayloads<UserContext>(o =>
     {
         o.MaxPayloadBytes = 2048;
         o.OversizeBehavior = ContextOversizeBehavior.FailFast;
     })
-    .MapProperty(c => c.Payload, "X-Payload"));
+    .MapProperty(c => c.Profile, "X-Profile"));
 ```
 
 ## What is considered "complex"

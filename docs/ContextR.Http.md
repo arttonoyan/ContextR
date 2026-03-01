@@ -14,6 +14,8 @@ dotnet add package ContextR.Transport.Http
 
 Dependencies: `ContextR` (core), `ContextR.Propagation` (for `IContextPropagator<T>`), `Microsoft.Extensions.Http`.
 
+For a dedicated explanation of handler/request scope mismatch and recommended patterns, see [HTTP Client Handler Scopes Deep Dive](HttpClientHandlerScopes.md).
+
 ## Two registration modes
 
 ### Global propagation (recommended for most apps)
@@ -147,13 +149,13 @@ _ = Task.Run(async () =>
 For mapped complex properties (`List<T>`, arrays, custom classes), combine HTTP transport with a payload strategy package:
 
 ```csharp
-ctx.Add<RequestContext>(reg => reg
-    .UseInlineJsonPayloads<RequestContext>(o =>
+ctx.Add<UserContext>(reg => reg
+    .UseInlineJsonPayloads<UserContext>(o =>
     {
         o.MaxPayloadBytes = 4096;
         o.OversizeBehavior = ContextOversizeBehavior.FailFast;
     })
-    .MapProperty(c => c.Tags, "X-Tags")
+    .MapProperty(c => c.Roles, "X-Roles")
     .UseGlobalHttpPropagation());
 ```
 

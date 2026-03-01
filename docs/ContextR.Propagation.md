@@ -55,18 +55,18 @@ ctx.Add<CorrelationContext>(reg => reg
 When you need runtime decisions (per key, direction, domain, payload size), register a strategy policy:
 
 ```csharp
-ctx.Add<RequestContext>(reg => reg
-    .UseInlineJsonPayloads<RequestContext>(o => o.MaxPayloadBytes = 256)
-    .UseChunkingPayloads<RequestContext>()
-    .UseStrategyPolicy<RequestContext, RequestStrategyPolicy>()
-    .MapProperty(c => c.Tags, "X-Tags")
-    .MapProperty(c => c.Payload, "X-Payload"));
+ctx.Add<UserContext>(reg => reg
+    .UseInlineJsonPayloads<UserContext>(o => o.MaxPayloadBytes = 256)
+    .UseChunkingPayloads<UserContext>()
+    .UseStrategyPolicy<UserContext, UserStrategyPolicy>()
+    .MapProperty(c => c.Roles, "X-Roles")
+    .MapProperty(c => c.Profile, "X-Profile"));
 
-public sealed class RequestStrategyPolicy : IContextPropagationStrategyPolicy<RequestContext>
+public sealed class UserStrategyPolicy : IContextPropagationStrategyPolicy<UserContext>
 {
     public ContextOversizeBehavior Select(ContextPropagationStrategyPolicyContext context)
     {
-        return context.Key == "X-Tags"
+        return context.Key == "X-Roles"
             ? ContextOversizeBehavior.ChunkProperty
             : ContextOversizeBehavior.SkipProperty;
     }
@@ -76,15 +76,15 @@ public sealed class RequestStrategyPolicy : IContextPropagationStrategyPolicy<Re
 Delegate-based registration is also supported:
 
 ```csharp
-ctx.Add<RequestContext>(reg => reg
-    .UseInlineJsonPayloads<RequestContext>(o => o.MaxPayloadBytes = 256)
-    .UseChunkingPayloads<RequestContext>()
-    .UseStrategyPolicy<RequestContext>(sp => policyContext =>
-        policyContext.Key == "X-Tags"
+ctx.Add<UserContext>(reg => reg
+    .UseInlineJsonPayloads<UserContext>(o => o.MaxPayloadBytes = 256)
+    .UseChunkingPayloads<UserContext>()
+    .UseStrategyPolicy<UserContext>(sp => policyContext =>
+        policyContext.Key == "X-Roles"
             ? ContextOversizeBehavior.ChunkProperty
             : ContextOversizeBehavior.SkipProperty)
-    .MapProperty(c => c.Tags, "X-Tags")
-    .MapProperty(c => c.Payload, "X-Payload"));
+    .MapProperty(c => c.Roles, "X-Roles")
+    .MapProperty(c => c.Profile, "X-Profile"));
 ```
 
 Oversize decision precedence:
@@ -159,10 +159,10 @@ Without an explicit payload strategy, complex mapped types like `List<T>`, array
 `ContextR.Propagation` provides strategy hooks for mapped property payload behavior:
 
 ```csharp
-ctx.Add<RequestContext>(reg => reg
-    .UsePayloadSerializer<RequestContext, CustomSerializer>()
-    .UseTransportPolicy<RequestContext, CustomPolicy>()
-    .MapProperty(c => c.Tags, "X-Tags"));
+ctx.Add<UserContext>(reg => reg
+    .UsePayloadSerializer<UserContext, CustomSerializer>()
+    .UseTransportPolicy<UserContext, CustomPolicy>()
+    .MapProperty(c => c.Roles, "X-Roles"));
 ```
 
 Available abstractions:
@@ -204,19 +204,19 @@ Available contracts:
 ### Examples
 
 ```csharp
-public class RequestContext
+public class UserContext
 {
-    public string? CorrelationId { get; set; }  // string → direct
-    public Guid RequestId { get; set; }         // Guid → IParsable
-    public int RetryCount { get; set; }         // int → IParsable
-    public DateTime Timestamp { get; set; }     // DateTime → IParsable
+    public string? TenantId { get; set; }       // string → direct
+    public string? UserId { get; set; }         // string → direct
+    public Guid SessionId { get; set; }         // Guid → IParsable
+    public DateTime LastSeenUtc { get; set; }   // DateTime → IParsable
 }
 
-ctx.Add<RequestContext>(reg => reg
-    .MapProperty(c => c.CorrelationId, "X-Correlation-Id")
-    .MapProperty(c => c.RequestId, "X-Request-Id")
-    .MapProperty(c => c.RetryCount, "X-Retry-Count")
-    .MapProperty(c => c.Timestamp, "X-Timestamp"));
+ctx.Add<UserContext>(reg => reg
+    .MapProperty(c => c.TenantId, "X-Tenant-Id")
+    .MapProperty(c => c.UserId, "X-User-Id")
+    .MapProperty(c => c.SessionId, "X-Session-Id")
+    .MapProperty(c => c.LastSeenUtc, "X-Last-Seen-Utc"));
 ```
 
 ## Requirements for context types
