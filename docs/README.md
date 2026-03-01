@@ -4,6 +4,7 @@ Start here for practical guidance, then go deeper into package-specific details.
 
 ## Start
 
+- [Why ContextR Was Born](WhyContextR.md)
 - [Getting Started](GettingStarted.md)
 - [Usage Cookbook](UsageCookbook.md)
 - [Q&A / FAQ](FAQ.md)

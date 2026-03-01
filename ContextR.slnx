@@ -5,6 +5,7 @@
     <File Path="docs/GettingStarted.md" />
     <File Path="docs/HttpClientHandlerScopes.md" />
     <File Path="docs/README.md" />
+    <File Path="docs/WhyContextR.md" />
     <File Path="docs/ContextR.AspNetCore.md" />
     <File Path="docs/ContextR.Grpc.md" />
     <File Path="docs/ContextR.Http.md" />

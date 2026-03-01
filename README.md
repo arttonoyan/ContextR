@@ -6,32 +6,16 @@ ContextR helps you move request, tenant, user, and operational metadata across a
 
 ## Why This Project Was Born
 
-In our system, a gateway fronts multiple standalone microservices running in an internal network.
+We run a gateway + microservices architecture where authenticated requests are transformed into typed `UserContext` data (`TenantId`, `UserId`, and related fields).  
+That context must continue across HTTP, gRPC, and distributed events as services call each other.
 
-The gateway supports multiple authentication schemes. After authentication succeeds, it transforms the token into a typed `UserContext` (for example `TenantId`, `UserId`, and related fields) and forwards that context to downstream services.
+Without a unified model, context handling leaks into business code and turns into repeated boilerplate that is easy to get wrong.  
+ContextR was created so engineers do not need to think about propagation mechanics in daily feature work.
 
-The challenge is that downstream services also call each other over HTTP, gRPC, and distributed events.  
-So `UserContext` must propagate consistently across all communication layers, not only at the gateway edge.
+Read the full story:
 
-Over time, engineers started spending too much effort on context plumbing:
-
-- how to retrieve context safely
-- how to pass it across async boundaries
-- how to propagate it through transport-specific handlers/interceptors
-
-Context concerns leaked into business logic, created repetitive boilerplate, and increased the chance of mistakes.
-
-Our goal became simple: engineers should not think about context propagation. It should just work.
-
-As implementation evolved, we discovered deeper platform challenges:
-
-- `HttpClient` handler scope behavior and pipeline reuse (see [HTTP Client Handler Scope Deep Dive](docs/HttpClientHandlerScopes.md))
-- singleton infrastructure components that still need contextual data
-- subtle `AsyncLocal` behavior across async flows and service lifetimes
-
-Those lessons made it clear we needed one structured, unified model for context propagation across the entire platform.
-
-ContextR was born from that need.
+- [Why ContextR Was Born](docs/WhyContextR.md)
+- [HTTP Client Handler Scope Deep Dive](docs/HttpClientHandlerScopes.md)
 
 ## What You Get
 
