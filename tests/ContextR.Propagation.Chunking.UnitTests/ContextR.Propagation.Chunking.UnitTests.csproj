@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -24,16 +23,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ContextR.Propagation\ContextR.Propagation.csproj" />
-    <ProjectReference Include="..\..\src\ContextR.Propagation.Mapping\ContextR.Propagation.Mapping.csproj" />
-    <ProjectReference Include="..\..\src\ContextR.Propagation.InlineJson\ContextR.Propagation.InlineJson.csproj" />
     <ProjectReference Include="..\..\src\ContextR.Propagation.Chunking\ContextR.Propagation.Chunking.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
     <Using Include="ContextR.Propagation" />
-    <Using Include="ContextR.Propagation.Mapping" />
-    <Using Include="ContextR.Propagation.InlineJson" />
+    <Using Include="ContextR.Propagation.Chunking" />
   </ItemGroup>
-
 </Project>

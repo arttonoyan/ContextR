@@ -32,6 +32,7 @@ builder.Services.AddContextR(ctx =>
 
 - `FailFast` -- throws deterministic `InvalidOperationException` when payload exceeds size cap.
 - `SkipProperty` -- skips only the oversize property; other mapped properties continue.
+- `ChunkProperty` -- delegates oversize handling to `IContextPayloadChunkingStrategy<TContext>`; install `ContextR.Propagation.Chunking` and register `UseChunkingPayloads<TContext>()`.
 - `FallbackToToken` -- signals token fallback intent; currently throws deterministic error if token strategy runtime is not configured.
 
 You can override this default behavior via propagation failure handler:

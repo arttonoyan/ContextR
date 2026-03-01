@@ -37,10 +37,10 @@ internal sealed class MappingContextPropagator<TContext> : IContextPropagator<TC
     {
         foreach (var mapping in _mappings)
         {
-            string? value;
+            IEnumerable<KeyValuePair<string, string>> values;
             try
             {
-                value = mapping.GetValue(context);
+                values = mapping.GetValues(context);
             }
             catch (PropertyMappingException ex)
             {
@@ -57,23 +57,24 @@ internal sealed class MappingContextPropagator<TContext> : IContextPropagator<TC
                 continue;
             }
 
-            if (value is null)
+            var anyValue = false;
+            foreach (var (key, value) in values)
             {
-                if (mapping.IsRequired)
-                {
-                    if (HandleFailure(
-                            mapping.Key,
-                            PropagationDirection.Inject,
-                            PropagationFailureReason.MissingRequired) == PropagationFailureAction.SkipContext)
-                    {
-                        return;
-                    }
-                }
-
-                continue;
+                anyValue = true;
+                setter(carrier, key, value);
             }
 
-            setter(carrier, mapping.Key, value);
+            if (anyValue)
+                continue;
+
+            if (mapping.IsRequired &&
+                HandleFailure(
+                    mapping.Key,
+                    PropagationDirection.Inject,
+                    PropagationFailureReason.MissingRequired) == PropagationFailureAction.SkipContext)
+            {
+                return;
+            }
         }
     }
 
@@ -84,7 +85,7 @@ internal sealed class MappingContextPropagator<TContext> : IContextPropagator<TC
 
         foreach (var mapping in _mappings)
         {
-            var value = getter(carrier, mapping.Key);
+            var value = mapping.GetRawValue(carrier, getter);
             if (value is null)
             {
                 if (mapping.IsRequired)

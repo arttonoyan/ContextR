@@ -394,6 +394,7 @@ dotnet add package ContextR
 dotnet add package ContextR.Propagation
 dotnet add package ContextR.Propagation.Mapping
 dotnet add package ContextR.Propagation.InlineJson
+dotnet add package ContextR.Propagation.Chunking
 dotnet add package ContextR.Propagation.Token
 dotnet add package ContextR.Hosting.AspNetCore
 dotnet add package ContextR.Transport.Http
@@ -473,7 +474,24 @@ builder.Services.AddContextR(ctx =>
 
 - `FailFast` -- throw deterministic exception when mapped payload exceeds size limit
 - `SkipProperty` -- skip only the oversize mapped property and continue other mappings
+- `ChunkProperty` -- split oversize payload into derived chunk keys (requires `ContextR.Propagation.Chunking`)
 - `FallbackToToken` -- reserved for token/reference strategy; fails deterministically until token runtime is wired
+
+Hybrid policy is supported with the mapping DSL:
+
+```csharp
+ctx.Add<RequestContext>(reg => reg
+    .UseInlineJsonPayloads<RequestContext>(o =>
+    {
+        o.MaxPayloadBytes = 256;
+        o.OversizeBehavior = ContextOversizeBehavior.SkipProperty; // context default
+    })
+    .UseChunkingPayloads<RequestContext>()
+    .Map(m => m
+        .DefaultOversizeBehavior(ContextOversizeBehavior.SkipProperty)
+        .Property(c => c.Tags, "X-Tags").OversizeBehavior(ContextOversizeBehavior.ChunkProperty).Optional()
+        .Property(c => c.Payload, "X-Payload").Optional()));
+```
 
 ### Propagation failure handling
 
@@ -586,8 +604,9 @@ Each domain's middleware and handler operate on their own isolated context slot.
 |---|---|---|
 | `ContextR` | Core library -- storage, snapshots, scopes, and domains | Available |
 | `ContextR.Propagation` | Propagation contracts + runtime registration extensions (`IContextPropagator<T>`, `UsePropagator`, payload/failure policy hooks) | Available |
-| `ContextR.Propagation.Mapping` | `MapProperty` fluent API for auto-generating propagators from property mappings | Available |
+| `ContextR.Propagation.Mapping` | `MapProperty` and `Map(...)` DSL for auto-generated propagators and policy-driven property mapping | Available |
 | `ContextR.Propagation.InlineJson` | Strategy package for JSON serialization of non-primitive mapped properties with size policy | Available |
+| `ContextR.Propagation.Chunking` | Strategy package for chunk split/reassembly of oversize mapped payloads | Available |
 | `ContextR.Propagation.Token` | Token/reference contracts for large payload transport (`IContextPayloadStore`, token codec) | Available |
 | `ContextR.Transport.Http` | `DelegatingHandler` for propagating context to outgoing `HttpClient` requests | Available |
 | `ContextR.Hosting.AspNetCore` | ASP.NET Core middleware for extracting context from incoming HTTP request headers | Available |
@@ -601,6 +620,7 @@ Each domain's middleware and handler operate on their own isolated context slot.
 | [Architecture and Design Decisions](docs/ARCHITECTURE.md) | Internal architecture, storage design, Set vs SetRaw, domain-scoping design, propagator design, DI registration rationale, FAQ |
 | [ContextR.Propagation](docs/ContextR.Propagation.md) | Property mapping API, `MappingContextPropagator`, custom propagator integration |
 | [ContextR.Propagation.InlineJson](docs/ContextR.Propagation.InlineJson.md) | Inline JSON strategy, size limits, oversize behaviors |
+| [ContextR.Propagation.Chunking](docs/ContextR.Propagation.Chunking.md) | Chunk strategy, derived key format, and registration |
 | [ContextR.Propagation.Token](docs/ContextR.Propagation.Token.md) | Token/reference contracts for large payload storage strategies |
 | [ContextR.Transport.Http](docs/ContextR.Http.md) | HTTP client propagation, global vs per-client, domain-aware handler |
 | [ContextR.Hosting.AspNetCore](docs/ContextR.AspNetCore.md) | ASP.NET Core middleware, `IStartupFilter`, domain-aware extraction |

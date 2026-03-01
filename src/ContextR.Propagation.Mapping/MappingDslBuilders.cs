@@ -29,6 +29,7 @@ public sealed class ContextMapBuilder<TContext>
     where TContext : class
 {
     private readonly IContextRegistrationBuilder<TContext> _registrationBuilder;
+    private ContextOversizeBehavior? _defaultOversizeBehavior;
 
     internal ContextMapBuilder(IContextRegistrationBuilder<TContext> registrationBuilder)
     {
@@ -48,10 +49,20 @@ public sealed class ContextMapBuilder<TContext>
         return new ContextMapPropertyBuilder<TContext, TProperty>(this, property, key);
     }
 
+    /// <summary>
+    /// Sets context-level default oversize behavior for mapped properties.
+    /// </summary>
+    public ContextMapBuilder<TContext> DefaultOversizeBehavior(ContextOversizeBehavior behavior)
+    {
+        _defaultOversizeBehavior = behavior;
+        return this;
+    }
+
     internal ContextMapBuilder<TContext> AddProperty<TProperty>(
         Expression<Func<TContext, TProperty>> property,
         string key,
-        PropertyRequirement requirement)
+        PropertyRequirement requirement,
+        ContextOversizeBehavior? oversizeBehaviorOverride)
     {
         _registrationBuilder.Services.AddSingleton<IPropertyMapping<TContext>>(
             sp => PropertyMapping.Create(
@@ -59,7 +70,9 @@ public sealed class ContextMapBuilder<TContext>
                 key,
                 sp.GetService<IContextPayloadSerializer<TContext>>(),
                 sp.GetService<IContextTransportPolicy<TContext>>(),
-                requirement));
+                sp.GetService<IContextPayloadChunkingStrategy<TContext>>(),
+                requirement,
+                oversizeBehaviorOverride ?? _defaultOversizeBehavior));
 
         _registrationBuilder.Services.TryAddSingleton<IPropagationExecutionScope, AsyncLocalPropagationExecutionScope>();
         _registrationBuilder.Services.TryAddSingleton<IContextPropagator<TContext>>(sp =>
@@ -84,6 +97,7 @@ public sealed class ContextMapPropertyBuilder<TContext, TProperty>
     private readonly ContextMapBuilder<TContext> _parent;
     private readonly Expression<Func<TContext, TProperty>> _property;
     private readonly string _key;
+    private ContextOversizeBehavior? _oversizeBehaviorOverride;
 
     internal ContextMapPropertyBuilder(
         ContextMapBuilder<TContext> parent,
@@ -100,7 +114,7 @@ public sealed class ContextMapPropertyBuilder<TContext, TProperty>
     /// </summary>
     public ContextMapBuilder<TContext> Required()
     {
-        return _parent.AddProperty(_property, _key, PropertyRequirement.Required);
+        return _parent.AddProperty(_property, _key, PropertyRequirement.Required, _oversizeBehaviorOverride);
     }
 
     /// <summary>
@@ -108,6 +122,15 @@ public sealed class ContextMapPropertyBuilder<TContext, TProperty>
     /// </summary>
     public ContextMapBuilder<TContext> Optional()
     {
-        return _parent.AddProperty(_property, _key, PropertyRequirement.Optional);
+        return _parent.AddProperty(_property, _key, PropertyRequirement.Optional, _oversizeBehaviorOverride);
+    }
+
+    /// <summary>
+    /// Overrides oversize behavior for this property.
+    /// </summary>
+    public ContextMapPropertyBuilder<TContext, TProperty> OversizeBehavior(ContextOversizeBehavior behavior)
+    {
+        _oversizeBehaviorOverride = behavior;
+        return this;
     }
 }

@@ -548,6 +548,7 @@ sequenceDiagram
 | `IContextPropagator.cs` | Transport-agnostic serialization/deserialization interface using carrier pattern |
 | `ContextRPropagationRegistrationExtensions.cs` | Registration extensions for `UsePropagator`, payload strategy, and failure handling |
 | `ContextPayloadContracts.cs` | Payload strategy abstractions: `IContextPayloadSerializer<T>`, `IContextTransportPolicy<T>`, `ContextOversizeBehavior` |
+| `ContextPayloadChunkingContracts.cs` | Chunk strategy abstraction: `IContextPayloadChunkingStrategy<T>` |
 | `PropagationFailureContracts.cs` | Failure handling abstractions: `IContextPropagationFailureHandler<T>`, `PropagationFailureContext`, reason/action enums |
 
 ### ContextR.Propagation.Mapping
@@ -555,9 +556,9 @@ sequenceDiagram
 | File | Role |
 |------|------|
 | `ContextRPropagationExtensions.cs` | `MapProperty()` and `Map(...)` DSL entry points. Registers `IPropertyMapping<T>` and `MappingContextPropagator<T>` into DI. |
-| `MappingDslBuilders.cs` | DSL builders + `PropertyRequirement` (`Required`/`Optional`) |
-| `Internal/IPropertyMapping.cs` | Internal interface: `Key`, `GetValue`, `TrySetValue` |
-| `Internal/PropertyMapping.cs` | Expression-compiled property accessor. Uses optional payload serializer/policy from DI; falls back to legacy `IParsable`/`Convert.ChangeType` behavior when strategy is not configured. |
+| `MappingDslBuilders.cs` | DSL builders + `PropertyRequirement` (`Required`/`Optional`) and oversize policy defaults/overrides |
+| `Internal/IPropertyMapping.cs` | Internal interface: `Key`, `GetValues`, `GetRawValue`, `TrySetValue` |
+| `Internal/PropertyMapping.cs` | Expression-compiled property accessor. Uses optional payload serializer, transport policy, and chunking strategy from DI; falls back to legacy `IParsable`/`Convert.ChangeType` behavior when strategy is not configured. |
 | `Internal/MappingContextPropagator.cs` | `IContextPropagator<T>` that delegates `Inject`/`Extract` to collected `IPropertyMapping<T>` instances. |
 | `Internal/PropertyMappingException.cs` | Internal exception carrying categorized failure reason for policy handling |
 
@@ -568,6 +569,13 @@ sequenceDiagram
 | `ContextRInlineJsonRegistrationExtensions.cs` | `UseInlineJsonPayloads<T>()` registration extension with options |
 | `InlineJsonPayloadSerializer.cs` | JSON payload serializer for complex mapped types |
 | `InlineJsonPayloadOptions.cs` | Size policy options and inline transport policy implementation |
+
+### ContextR.Propagation.Chunking
+
+| File | Role |
+|------|------|
+| `DefaultPayloadChunkingStrategy.cs` | Default UTF-8-safe chunk split/reassembly implementation |
+| `ContextRChunkingRegistrationExtensions.cs` | `UseChunkingPayloads<T>()` registration extension |
 
 ### ContextR.Propagation.Token
 

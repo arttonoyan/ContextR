@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ContextR.Propagation.Chunking;
 using ContextR.Propagation.Strategies.IntegrationTests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -167,6 +168,42 @@ public sealed class StrategyPropagationAdvancedIntegrationTests
         });
 
         await Task.WhenAll(tasks);
+    }
+
+    [Fact]
+    public async Task Integration_HybridPolicy_ContextDefaultSkip_WithPropertyChunkOverride()
+    {
+        await using var app = await StrategyTestApp.CreateAsync(builder =>
+        {
+            builder.Services.AddContextR(ctx =>
+            {
+                ctx.Add<ComplexContext>(reg => reg
+                    .UseInlineJsonPayloads(o =>
+                    {
+                        o.MaxPayloadBytes = 64;
+                        o.OversizeBehavior = ContextOversizeBehavior.SkipProperty;
+                    })
+                    .UseChunkingPayloads()
+                    .Map(m => m
+                        .DefaultOversizeBehavior(ContextOversizeBehavior.SkipProperty)
+                        .Property(c => c.TraceId, "X-Trace-Id").Optional()
+                        .Property(c => c.Tags, "X-Tags").OversizeBehavior(ContextOversizeBehavior.ChunkProperty).Optional()
+                        .Property(c => c.Payload, "X-Payload").Optional())
+                    .UseAspNetCore()
+                    .UseGlobalHttpPropagation());
+            });
+
+            builder.Services.AddHttpClient("backend", c => c.BaseAddress = new Uri("http://captured-backend/"))
+                .ConfigurePrimaryHttpMessageHandler(() => new HeaderCaptureHandler());
+        });
+
+        var json = await app.GetJsonAsync("/propagate/complex/oversize");
+        var headers = json.GetProperty("propagatedHeaders");
+
+        Assert.Equal("trace-oversize", headers.GetProperty("X-Trace-Id").GetString());
+        Assert.True(headers.TryGetProperty("X-Tags__chunks", out _));
+        Assert.Contains(headers.EnumerateObject(), h => h.Name.StartsWith("X-Tags__chunk_", StringComparison.Ordinal));
+        Assert.False(headers.TryGetProperty("X-Payload", out _));
     }
 
     private static Task<StrategyTestApp> CreateWithInlineJsonAsync(

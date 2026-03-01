@@ -40,12 +40,15 @@ Each `MapProperty` call tells the framework: "when injecting this context into a
 ```csharp
 ctx.Add<CorrelationContext>(reg => reg
     .Map(m => m
+        .DefaultOversizeBehavior(ContextOversizeBehavior.SkipProperty)
         .Property(c => c.TraceId, "X-Trace-Id").Required()
-        .Property(c => c.SpanId, "X-Span-Id").Optional()));
+        .Property(c => c.SpanId, "X-Span-Id").OversizeBehavior(ContextOversizeBehavior.ChunkProperty).Optional()));
 ```
 
 - `Required()` means missing/invalid values fail by default.
 - `Optional()` means missing/invalid values are ignored.
+- `DefaultOversizeBehavior(...)` sets context-level oversize strategy default for DSL mappings.
+- `OversizeBehavior(...)` on a property overrides the context-level default for that property.
 
 ## How it works
 
@@ -121,9 +124,13 @@ Available abstractions:
 
 - `IContextPayloadSerializer<TContext>` -- serialize/deserialize mapped property payloads
 - `IContextTransportPolicy<TContext>` -- payload size constraints + oversize behavior
-- `ContextOversizeBehavior` -- `FailFast`, `SkipProperty`, `FallbackToToken`
+- `IContextPayloadChunkingStrategy<TContext>` -- strategy contract for chunk split/reassembly
+- `ContextOversizeBehavior` -- `FailFast`, `SkipProperty`, `ChunkProperty`, `FallbackToToken`
 
-For production-ready non-primitive support, prefer the dedicated `ContextR.Propagation.InlineJson` package.
+For production-ready non-primitive support, combine dedicated strategy packages:
+
+- `ContextR.Propagation.InlineJson` for serializer + transport policy
+- `ContextR.Propagation.Chunking` for chunk split/reassembly when using `ChunkProperty`
 
 ## Failure handling extensions
 
@@ -270,10 +277,11 @@ ctx.Add<CorrelationContext>(reg => reg
 
 ### IPropertyMapping&lt;TContext&gt;
 
-Internal interface representing a single property-to-key mapping. Has three members:
+Internal interface representing a single property-to-key mapping. Has four key members:
 
 - `Key` -- the transport key name
-- `GetValue(TContext)` -- reads the property and returns `ToString()` or `null`
+- `GetValues(TContext)` -- reads property and returns one-or-many key/value pairs for injection
+- `GetRawValue(...)` -- reads direct or strategy-derived raw payload from carrier
 - `TrySetValue(TContext, string)` -- parses the string and sets the property, returns `false` on parse failure
 
 ### PropertyMapping&lt;TContext, TProperty&gt;
@@ -299,6 +307,7 @@ Internal `IContextPropagator<TContext>` implementation. Collects all `IPropertyM
 Strategy-related coverage lives in:
 
 - `tests/ContextR.Propagation.UnitTests` (mapping behavior and guard clauses)
+- `tests/ContextR.Propagation.Chunking.UnitTests` (default chunking strategy split/reassembly)
 - `tests/ContextR.Propagation.InlineJson.UnitTests` (inline JSON serializer + registration)
 - `tests/ContextR.Propagation.Token.UnitTests` (token contracts)
 - `tests/ContextR.Propagation.Strategies.IntegrationTests` (integration + functional scenarios on `Microsoft.AspNetCore.TestHost`)

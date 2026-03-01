@@ -67,7 +67,7 @@ public sealed class PropertyMappingValidationTests
         var mapping = PropertyMapping.Create<IntContext, int>(c => c.Count, "X-Count");
 
         var context = new IntContext { Count = 42 };
-        var value = mapping.GetValue(context);
+        var value = mapping.GetValues(context).Single().Value;
 
         Assert.Equal("42", value);
     }
@@ -78,9 +78,8 @@ public sealed class PropertyMappingValidationTests
         var mapping = PropertyMapping.Create<TestContext, string?>(c => c.TenantId, "X-Tenant-Id");
 
         var context = new TestContext();
-        var value = mapping.GetValue(context);
-
-        Assert.Null(value);
+        var values = mapping.GetValues(context);
+        Assert.Empty(values);
     }
 
     [Fact]
@@ -163,7 +162,7 @@ public sealed class PropertyMappingValidationTests
             User = new UserInfo { Name = "alice" }
         };
 
-        var value = mapping.GetValue(context);
+        var value = mapping.GetValues(context).Single().Value;
 
         Assert.Equal("alice", value);
     }

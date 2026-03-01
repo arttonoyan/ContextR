@@ -46,11 +46,13 @@ public static class ContextRPropagationExtensions
     /// <param name="builder">The context registration builder.</param>
     /// <param name="property">An expression selecting the property (e.g., <c>c =&gt; c.TenantId</c>).</param>
     /// <param name="key">The transport key name (e.g., <c>"X-Tenant-Id"</c>).</param>
+    /// <param name="oversizeBehaviorOverride">Optional oversize behavior override for this property.</param>
     /// <returns>The same builder for fluent chaining.</returns>
     public static IContextRegistrationBuilder<TContext> MapProperty<TContext, TProperty>(
         this IContextRegistrationBuilder<TContext> builder,
         Expression<Func<TContext, TProperty>> property,
-        string key)
+        string key,
+        ContextOversizeBehavior? oversizeBehaviorOverride = null)
         where TContext : class
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -62,7 +64,9 @@ public static class ContextRPropagationExtensions
                 property,
                 key,
                 sp.GetService<IContextPayloadSerializer<TContext>>(),
-                sp.GetService<IContextTransportPolicy<TContext>>()));
+                sp.GetService<IContextTransportPolicy<TContext>>(),
+                sp.GetService<IContextPayloadChunkingStrategy<TContext>>(),
+                oversizeBehaviorOverride: oversizeBehaviorOverride));
 
         builder.Services.TryAddSingleton<IPropagationExecutionScope, AsyncLocalPropagationExecutionScope>();
         builder.Services.TryAddSingleton<IContextPropagator<TContext>>(sp =>

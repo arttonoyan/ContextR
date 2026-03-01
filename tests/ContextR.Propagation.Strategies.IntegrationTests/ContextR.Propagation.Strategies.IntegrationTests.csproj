@@ -33,6 +33,7 @@
     <ProjectReference Include="..\..\src\ContextR.Propagation\ContextR.Propagation.csproj" />
     <ProjectReference Include="..\..\src\ContextR.Propagation.Mapping\ContextR.Propagation.Mapping.csproj" />
     <ProjectReference Include="..\..\src\ContextR.Propagation.InlineJson\ContextR.Propagation.InlineJson.csproj" />
+    <ProjectReference Include="..\..\src\ContextR.Propagation.Chunking\ContextR.Propagation.Chunking.csproj" />
     <ProjectReference Include="..\..\src\ContextR.Propagation.Token\ContextR.Propagation.Token.csproj" />
     <ProjectReference Include="..\..\src\ContextR.Transport.Http\ContextR.Transport.Http.csproj" />
     <ProjectReference Include="..\..\src\ContextR.Hosting.AspNetCore\ContextR.Hosting.AspNetCore.csproj" />

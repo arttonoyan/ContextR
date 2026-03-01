@@ -43,7 +43,12 @@ public enum ContextOversizeBehavior
     /// Indicates a token/reference fallback should be used.
     /// If no token strategy is registered, behavior should fail deterministically.
     /// </summary>
-    FallbackToToken = 2
+    FallbackToToken = 2,
+
+    /// <summary>
+    /// Split oversized payload into multiple chunks under derived keys.
+    /// </summary>
+    ChunkProperty = 3
 }
 
 /// <summary>

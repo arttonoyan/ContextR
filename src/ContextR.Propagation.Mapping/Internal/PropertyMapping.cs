@@ -13,7 +13,9 @@ internal static class PropertyMapping
         string key,
         IContextPayloadSerializer<TContext>? payloadSerializer = null,
         IContextTransportPolicy<TContext>? transportPolicy = null,
-        PropertyRequirement requirement = PropertyRequirement.Optional)
+        IContextPayloadChunkingStrategy<TContext>? chunkingStrategy = null,
+        PropertyRequirement requirement = PropertyRequirement.Optional,
+        ContextOversizeBehavior? oversizeBehaviorOverride = null)
         where TContext : class
     {
         var member = propertyExpression.Body as MemberExpression
@@ -36,7 +38,15 @@ internal static class PropertyMapping
             Expression.Assign(Expression.Property(setterParam, propertyInfo), valueParam),
             setterParam, valueParam).Compile();
 
-        return new PropertyMapping<TContext, TProperty>(key, getter, setter, payloadSerializer, transportPolicy, requirement);
+        return new PropertyMapping<TContext, TProperty>(
+            key,
+            getter,
+            setter,
+            payloadSerializer,
+            transportPolicy,
+            chunkingStrategy,
+            requirement,
+            oversizeBehaviorOverride);
     }
 }
 
@@ -47,6 +57,8 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
     private readonly Action<TContext, TProperty> _setter;
     private readonly IContextPayloadSerializer<TContext>? _payloadSerializer;
     private readonly IContextTransportPolicy<TContext>? _transportPolicy;
+    private readonly IContextPayloadChunkingStrategy<TContext>? _chunkingStrategy;
+    private readonly ContextOversizeBehavior? _oversizeBehaviorOverride;
 
     public PropertyMapping(
         string key,
@@ -54,37 +66,58 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
         Action<TContext, TProperty> setter,
         IContextPayloadSerializer<TContext>? payloadSerializer,
         IContextTransportPolicy<TContext>? transportPolicy,
-        PropertyRequirement requirement)
+        IContextPayloadChunkingStrategy<TContext>? chunkingStrategy,
+        PropertyRequirement requirement,
+        ContextOversizeBehavior? oversizeBehaviorOverride)
     {
         Key = key;
         _getter = getter;
         _setter = setter;
         _payloadSerializer = payloadSerializer;
         _transportPolicy = transportPolicy;
+        _chunkingStrategy = chunkingStrategy;
+        _oversizeBehaviorOverride = oversizeBehaviorOverride;
         IsRequired = requirement == PropertyRequirement.Required;
     }
 
     public string Key { get; }
     public bool IsRequired { get; }
 
-    public string? GetValue(TContext context)
+    public IEnumerable<KeyValuePair<string, string>> GetValues(TContext context)
     {
         var value = _getter(context);
         if (value is null)
-            return null;
+            return [];
 
         if (CanUseCustomSerializer())
         {
             var serialized = _payloadSerializer!.Serialize(value, typeof(TProperty));
             if (!IsWithinLimit(serialized, out var payloadSize))
             {
-                return HandleOversizeOnInject(payloadSize);
+                return HandleOversizeOnInject(serialized, payloadSize);
             }
 
-            return serialized;
+            return [new KeyValuePair<string, string>(Key, serialized)];
         }
 
-        return value.ToString();
+        var plain = value.ToString();
+        return plain is null
+            ? []
+            : [new KeyValuePair<string, string>(Key, plain)];
+    }
+
+    public string? GetRawValue<TCarrier>(TCarrier carrier, Func<TCarrier, string, string?> getter)
+    {
+        var direct = getter(carrier, Key);
+        if (direct is not null)
+            return direct;
+
+        if (ResolveOversizeBehavior() != ContextOversizeBehavior.ChunkProperty || _chunkingStrategy is null)
+            return null;
+
+        return _chunkingStrategy.TryReassemble(Key, carrier, getter, out var payload)
+            ? payload
+            : null;
     }
 
     public bool TrySetValue(TContext context, string value)
@@ -93,7 +126,8 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
         {
             if (CanUseCustomSerializer())
             {
-                if (!IsWithinLimit(value, out var payloadSize))
+                if (ResolveOversizeBehavior() != ContextOversizeBehavior.ChunkProperty &&
+                    !IsWithinLimit(value, out var payloadSize))
                     return HandleOversizeOnExtract(payloadSize);
 
                 if (!_payloadSerializer!.TryDeserialize(value, typeof(TProperty), out var parsedValue))
@@ -143,40 +177,52 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
         return maxPayloadBytes <= 0 || payloadSize <= maxPayloadBytes;
     }
 
-    private string? HandleOversizeOnInject(int payloadSize)
+    private IEnumerable<KeyValuePair<string, string>> HandleOversizeOnInject(string serializedPayload, int payloadSize)
     {
-        if (_transportPolicy is null)
-            return null;
+        var strategy = ResolveOversizeBehavior();
+        var maxPayloadBytes = _transportPolicy?.MaxPayloadBytes ?? 0;
 
-        return _transportPolicy.OversizeBehavior switch
+        return strategy switch
         {
-            ContextOversizeBehavior.SkipProperty => null,
+            ContextOversizeBehavior.SkipProperty => [],
             ContextOversizeBehavior.FailFast => throw new PropertyMappingException(
                 PropagationFailureReason.Oversize,
-                $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {_transportPolicy.MaxPayloadBytes} bytes)."),
+                $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {maxPayloadBytes} bytes)."),
             ContextOversizeBehavior.FallbackToToken => throw new PropertyMappingException(
                 PropagationFailureReason.TokenFallbackUnavailable,
-                $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {_transportPolicy.MaxPayloadBytes} bytes) and requested token fallback, but no token strategy is configured."),
+                $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {maxPayloadBytes} bytes) and requested token fallback, but no token strategy is configured."),
+            ContextOversizeBehavior.ChunkProperty when _chunkingStrategy is not null => _chunkingStrategy.Chunk(Key, serializedPayload, maxPayloadBytes),
+            ContextOversizeBehavior.ChunkProperty => throw new PropertyMappingException(
+                PropagationFailureReason.Oversize,
+                $"Mapped payload for key '{Key}' requested chunking, but no chunking strategy is configured."),
             _ => throw new InvalidOperationException("Unsupported oversize behavior.")
         };
     }
 
     private bool HandleOversizeOnExtract(int payloadSize)
     {
-        if (_transportPolicy is null)
-            return false;
+        var strategy = ResolveOversizeBehavior();
+        var maxPayloadBytes = _transportPolicy?.MaxPayloadBytes ?? 0;
 
-        return _transportPolicy.OversizeBehavior switch
+        return strategy switch
         {
             ContextOversizeBehavior.SkipProperty => false,
             ContextOversizeBehavior.FailFast => throw new PropertyMappingException(
                 PropagationFailureReason.Oversize,
-                $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {_transportPolicy.MaxPayloadBytes} bytes)."),
+                $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {maxPayloadBytes} bytes)."),
             ContextOversizeBehavior.FallbackToToken => throw new PropertyMappingException(
                 PropagationFailureReason.TokenFallbackUnavailable,
-                $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {_transportPolicy.MaxPayloadBytes} bytes) and requested token fallback, but no token strategy is configured."),
+                $"Mapped payload for key '{Key}' exceeded limit ({payloadSize} bytes > {maxPayloadBytes} bytes) and requested token fallback, but no token strategy is configured."),
+            ContextOversizeBehavior.ChunkProperty => false,
             _ => throw new InvalidOperationException("Unsupported oversize behavior.")
         };
+    }
+
+    private ContextOversizeBehavior ResolveOversizeBehavior()
+    {
+        return _oversizeBehaviorOverride
+            ?? _transportPolicy?.OversizeBehavior
+            ?? ContextOversizeBehavior.FailFast;
     }
 
     private static bool TryParse(string value, [NotNullWhen(true)] out TProperty? result)

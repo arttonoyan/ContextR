@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ContextR.Propagation.Chunking;
 using ContextR.Propagation.Strategies.IntegrationTests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -136,6 +137,56 @@ public sealed class StrategyPropagationIntegrationFunctionalTests
         Assert.False(json.GetProperty("hasContext").GetBoolean());
     }
 
+    [Fact]
+    public async Task Integration_ChunkProperty_Inject_SplitsOversizePayloadIntoDerivedHeaders()
+    {
+        await using var app = await CreateWithInlineJsonAsync(
+            maxPayloadBytes: 64,
+            oversizeBehavior: ContextOversizeBehavior.ChunkProperty);
+
+        var json = await app.GetJsonAsync("/propagate/complex/oversize");
+        var headers = json.GetProperty("propagatedHeaders");
+
+        Assert.Equal("trace-oversize", headers.GetProperty("X-Trace-Id").GetString());
+        Assert.True(headers.TryGetProperty("X-Tags__chunks", out _));
+        Assert.Contains(headers.EnumerateObject(), p => p.Name.StartsWith("X-Tags__chunk_", StringComparison.Ordinal));
+        Assert.True(headers.TryGetProperty("X-Payload__chunks", out _));
+    }
+
+    [Fact]
+    public async Task Integration_ChunkProperty_Extract_ReassemblesOversizePayload()
+    {
+        await using var app = await CreateWithInlineJsonAsync(
+            maxPayloadBytes: 32,
+            oversizeBehavior: ContextOversizeBehavior.ChunkProperty);
+
+        var oversizedPayload = JsonSerializer.Serialize(
+            Enumerable.Range(1, 20).Select(i => $"value-{i}").ToList());
+
+        var chunkCarrier = new Dictionary<string, string>();
+        var bytes = System.Text.Encoding.UTF8.GetBytes(oversizedPayload);
+        var chunkSize = 32;
+        var index = 0;
+        var offset = 0;
+        while (offset < bytes.Length)
+        {
+            var count = Math.Min(chunkSize, bytes.Length - offset);
+            var part = System.Text.Encoding.UTF8.GetString(bytes, offset, count);
+            chunkCarrier[$"X-Tags__chunk_{index++}"] = part;
+            offset += count;
+        }
+
+        chunkCarrier["X-Tags__chunks"] = index.ToString();
+        chunkCarrier["X-Trace-Id"] = "trace-chunk";
+
+        var headers = chunkCarrier.Select(kv => (kv.Key, kv.Value)).ToArray();
+        var json = await app.GetJsonAsync("/context/complex", headers);
+
+        Assert.True(json.GetProperty("hasContext").GetBoolean());
+        Assert.Equal("trace-chunk", json.GetProperty("traceId").GetString());
+        Assert.Equal(20, json.GetProperty("tags").GetArrayLength());
+    }
+
     private static Task<StrategyTestApp> CreateWithInlineJsonAsync(
         int maxPayloadBytes,
         ContextOversizeBehavior oversizeBehavior)
@@ -150,6 +201,7 @@ public sealed class StrategyPropagationIntegrationFunctionalTests
                         o.MaxPayloadBytes = maxPayloadBytes;
                         o.OversizeBehavior = oversizeBehavior;
                     })
+                    .UseChunkingPayloads<ComplexContext>()
                     .MapProperty(c => c.TraceId, "X-Trace-Id")
                     .MapProperty(c => c.Tags, "X-Tags")
                     .MapProperty(c => c.Payload, "X-Payload")

@@ -4,6 +4,7 @@ internal interface IPropertyMapping<TContext> where TContext : class
 {
     string Key { get; }
     bool IsRequired { get; }
-    string? GetValue(TContext context);
+    IEnumerable<KeyValuePair<string, string>> GetValues(TContext context);
+    string? GetRawValue<TCarrier>(TCarrier carrier, Func<TCarrier, string, string?> getter);
     bool TrySetValue(TContext context, string value);
 }
