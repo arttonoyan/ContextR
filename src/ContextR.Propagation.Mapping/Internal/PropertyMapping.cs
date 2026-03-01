@@ -14,6 +14,7 @@ internal static class PropertyMapping
         IContextPayloadSerializer<TContext>? payloadSerializer = null,
         IContextTransportPolicy<TContext>? transportPolicy = null,
         IContextPayloadChunkingStrategy<TContext>? chunkingStrategy = null,
+        Func<ContextPropagationStrategyPolicyContext, ContextOversizeBehavior?>? strategyPolicyEvaluator = null,
         PropertyRequirement requirement = PropertyRequirement.Optional,
         ContextOversizeBehavior? oversizeBehaviorOverride = null)
         where TContext : class
@@ -45,6 +46,7 @@ internal static class PropertyMapping
             payloadSerializer,
             transportPolicy,
             chunkingStrategy,
+            strategyPolicyEvaluator,
             requirement,
             oversizeBehaviorOverride);
     }
@@ -58,6 +60,7 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
     private readonly IContextPayloadSerializer<TContext>? _payloadSerializer;
     private readonly IContextTransportPolicy<TContext>? _transportPolicy;
     private readonly IContextPayloadChunkingStrategy<TContext>? _chunkingStrategy;
+    private readonly Func<ContextPropagationStrategyPolicyContext, ContextOversizeBehavior?>? _strategyPolicyEvaluator;
     private readonly ContextOversizeBehavior? _oversizeBehaviorOverride;
 
     public PropertyMapping(
@@ -67,6 +70,7 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
         IContextPayloadSerializer<TContext>? payloadSerializer,
         IContextTransportPolicy<TContext>? transportPolicy,
         IContextPayloadChunkingStrategy<TContext>? chunkingStrategy,
+        Func<ContextPropagationStrategyPolicyContext, ContextOversizeBehavior?>? strategyPolicyEvaluator,
         PropertyRequirement requirement,
         ContextOversizeBehavior? oversizeBehaviorOverride)
     {
@@ -76,6 +80,7 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
         _payloadSerializer = payloadSerializer;
         _transportPolicy = transportPolicy;
         _chunkingStrategy = chunkingStrategy;
+        _strategyPolicyEvaluator = strategyPolicyEvaluator;
         _oversizeBehaviorOverride = oversizeBehaviorOverride;
         IsRequired = requirement == PropertyRequirement.Required;
     }
@@ -112,7 +117,8 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
         if (direct is not null)
             return direct;
 
-        if (ResolveOversizeBehavior() != ContextOversizeBehavior.ChunkProperty || _chunkingStrategy is null)
+        if (ResolveOversizeBehavior(PropagationDirection.Extract) != ContextOversizeBehavior.ChunkProperty ||
+            _chunkingStrategy is null)
             return null;
 
         return _chunkingStrategy.TryReassemble(Key, carrier, getter, out var payload)
@@ -126,7 +132,7 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
         {
             if (CanUseCustomSerializer())
             {
-                if (ResolveOversizeBehavior() != ContextOversizeBehavior.ChunkProperty &&
+                if (ResolveOversizeBehavior(PropagationDirection.Extract) != ContextOversizeBehavior.ChunkProperty &&
                     !IsWithinLimit(value, out var payloadSize))
                     return HandleOversizeOnExtract(payloadSize);
 
@@ -179,7 +185,7 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
 
     private IEnumerable<KeyValuePair<string, string>> HandleOversizeOnInject(string serializedPayload, int payloadSize)
     {
-        var strategy = ResolveOversizeBehavior();
+        var strategy = ResolveOversizeBehavior(PropagationDirection.Inject, payloadSize);
         var maxPayloadBytes = _transportPolicy?.MaxPayloadBytes ?? 0;
 
         return strategy switch
@@ -201,7 +207,7 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
 
     private bool HandleOversizeOnExtract(int payloadSize)
     {
-        var strategy = ResolveOversizeBehavior();
+        var strategy = ResolveOversizeBehavior(PropagationDirection.Extract, payloadSize);
         var maxPayloadBytes = _transportPolicy?.MaxPayloadBytes ?? 0;
 
         return strategy switch
@@ -218,9 +224,17 @@ internal sealed class PropertyMapping<TContext, TProperty> : IPropertyMapping<TC
         };
     }
 
-    private ContextOversizeBehavior ResolveOversizeBehavior()
+    private ContextOversizeBehavior ResolveOversizeBehavior(PropagationDirection direction, int? payloadSizeBytes = null)
     {
         return _oversizeBehaviorOverride
+            ?? _strategyPolicyEvaluator?.Invoke(new ContextPropagationStrategyPolicyContext
+            {
+                ContextType = typeof(TContext),
+                Key = Key,
+                PropertyType = typeof(TProperty),
+                Direction = direction,
+                PayloadSizeBytes = payloadSizeBytes
+            })
             ?? _transportPolicy?.OversizeBehavior
             ?? ContextOversizeBehavior.FailFast;
     }

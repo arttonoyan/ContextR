@@ -60,13 +60,36 @@ public static class ContextRPropagationExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
         builder.Services.AddSingleton<IPropertyMapping<TContext>>(
-            sp => PropertyMapping.Create(
-                property,
-                key,
-                sp.GetService<IContextPayloadSerializer<TContext>>(),
-                sp.GetService<IContextTransportPolicy<TContext>>(),
-                sp.GetService<IContextPayloadChunkingStrategy<TContext>>(),
-                oversizeBehaviorOverride: oversizeBehaviorOverride));
+            sp =>
+            {
+                var executionScope = sp.GetRequiredService<IPropagationExecutionScope>();
+                var policyRegistry = sp.GetService<ContextPropagationStrategyPolicyRegistry<TContext>>();
+                return PropertyMapping.Create(
+                    property,
+                    key,
+                    sp.GetService<IContextPayloadSerializer<TContext>>(),
+                    sp.GetService<IContextTransportPolicy<TContext>>(),
+                    sp.GetService<IContextPayloadChunkingStrategy<TContext>>(),
+                    ctx =>
+                    {
+                        var policy = policyRegistry?.Resolve(sp, executionScope.CurrentDomain);
+                        if (policy is null)
+                            return null;
+
+                        var policyContext = new ContextPropagationStrategyPolicyContext
+                        {
+                            ContextType = ctx.ContextType,
+                            Key = ctx.Key,
+                            PropertyType = ctx.PropertyType,
+                            Direction = ctx.Direction,
+                            PayloadSizeBytes = ctx.PayloadSizeBytes,
+                            Domain = executionScope.CurrentDomain
+                        };
+
+                        return policy.Select(policyContext);
+                    },
+                    oversizeBehaviorOverride: oversizeBehaviorOverride);
+            });
 
         builder.Services.TryAddSingleton<IPropagationExecutionScope, AsyncLocalPropagationExecutionScope>();
         builder.Services.TryAddSingleton<IContextPropagator<TContext>>(sp =>

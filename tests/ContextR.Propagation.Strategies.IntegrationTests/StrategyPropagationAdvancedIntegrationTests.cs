@@ -206,6 +206,40 @@ public sealed class StrategyPropagationAdvancedIntegrationTests
         Assert.False(headers.TryGetProperty("X-Payload", out _));
     }
 
+    [Fact]
+    public async Task Integration_StrategyPolicyDelegateFactory_ChunksTagsForOversizePayload()
+    {
+        await using var app = await StrategyTestApp.CreateAsync(builder =>
+        {
+            builder.Services.AddContextR(ctx =>
+            {
+                ctx.Add<ComplexContext>(reg => reg
+                    .UseInlineJsonPayloads(o => o.MaxPayloadBytes = 64)
+                    .UseChunkingPayloads()
+                    .UseStrategyPolicy<ComplexContext>(sp => policyContext =>
+                        policyContext.Key == "X-Tags"
+                            ? ContextOversizeBehavior.ChunkProperty
+                            : ContextOversizeBehavior.SkipProperty)
+                    .MapProperty(c => c.TraceId, "X-Trace-Id")
+                    .MapProperty(c => c.Tags, "X-Tags")
+                    .MapProperty(c => c.Payload, "X-Payload")
+                    .UseAspNetCore()
+                    .UseGlobalHttpPropagation());
+            });
+
+            builder.Services.AddHttpClient("backend", c => c.BaseAddress = new Uri("http://captured-backend/"))
+                .ConfigurePrimaryHttpMessageHandler(() => new HeaderCaptureHandler());
+        });
+
+        var json = await app.GetJsonAsync("/propagate/complex/oversize");
+        var headers = json.GetProperty("propagatedHeaders");
+
+        Assert.Equal("trace-oversize", headers.GetProperty("X-Trace-Id").GetString());
+        Assert.True(headers.TryGetProperty("X-Tags__chunks", out _));
+        Assert.Contains(headers.EnumerateObject(), h => h.Name.StartsWith("X-Tags__chunk_", StringComparison.Ordinal));
+        Assert.False(headers.TryGetProperty("X-Payload", out _));
+    }
+
     private static Task<StrategyTestApp> CreateWithInlineJsonAsync(
         int maxPayloadBytes,
         ContextOversizeBehavior oversizeBehavior)

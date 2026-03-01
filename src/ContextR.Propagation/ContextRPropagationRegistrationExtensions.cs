@@ -56,6 +56,57 @@ public static class ContextRPropagationRegistrationExtensions
     }
 
     /// <summary>
+    /// Registers a runtime strategy policy implementation.
+    /// </summary>
+    public static IContextRegistrationBuilder<TContext> UseStrategyPolicy<TContext, TPolicy>(
+        this IContextRegistrationBuilder<TContext> builder)
+        where TContext : class
+        where TPolicy : class, IContextPropagationStrategyPolicy<TContext>
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        EnsureExecutionScopeRegistration(builder.Services);
+        builder.Services.TryAddSingleton<TPolicy>();
+
+        var registry = GetOrAddStrategyPolicyRegistry<TContext>(builder.Services);
+        registry.TryAdd(builder.Domain, sp => sp.GetRequiredService<TPolicy>());
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers a runtime strategy policy delegate.
+    /// </summary>
+    public static IContextRegistrationBuilder<TContext> UseStrategyPolicy<TContext>(
+        this IContextRegistrationBuilder<TContext> builder,
+        Func<ContextPropagationStrategyPolicyContext, ContextOversizeBehavior> policy)
+        where TContext : class
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(policy);
+        EnsureExecutionScopeRegistration(builder.Services);
+
+        var registry = GetOrAddStrategyPolicyRegistry<TContext>(builder.Services);
+        registry.TryAdd(builder.Domain, _ => new DelegateContextPropagationStrategyPolicy<TContext>(policy));
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers a runtime strategy policy delegate factory resolved from DI.
+    /// </summary>
+    public static IContextRegistrationBuilder<TContext> UseStrategyPolicy<TContext>(
+        this IContextRegistrationBuilder<TContext> builder,
+        Func<IServiceProvider, Func<ContextPropagationStrategyPolicyContext, ContextOversizeBehavior>> factory)
+        where TContext : class
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(factory);
+        EnsureExecutionScopeRegistration(builder.Services);
+
+        var registry = GetOrAddStrategyPolicyRegistry<TContext>(builder.Services);
+        registry.TryAdd(builder.Domain, sp => new DelegateContextPropagationStrategyPolicy<TContext>(factory(sp)));
+        return builder;
+    }
+
+    /// <summary>
     /// Registers a propagation failure handler implementation.
     /// </summary>
     public static IContextRegistrationBuilder<TContext> OnPropagationFailure<TContext, THandler>(
@@ -111,11 +162,35 @@ public static class ContextRPropagationRegistrationExtensions
         return created;
     }
 
+    private static ContextPropagationStrategyPolicyRegistry<TContext> GetOrAddStrategyPolicyRegistry<TContext>(
+        IServiceCollection services)
+        where TContext : class
+    {
+        var existing = services
+            .FirstOrDefault(d => d.ServiceType == typeof(ContextPropagationStrategyPolicyRegistry<TContext>))
+            ?.ImplementationInstance as ContextPropagationStrategyPolicyRegistry<TContext>;
+
+        if (existing is not null)
+            return existing;
+
+        var created = new ContextPropagationStrategyPolicyRegistry<TContext>();
+        services.AddSingleton(created);
+        return created;
+    }
+
     private sealed class DelegateContextPropagationFailureHandler<TContext>(
         Func<PropagationFailureContext, PropagationFailureAction> handler)
         : IContextPropagationFailureHandler<TContext>
         where TContext : class
     {
         public PropagationFailureAction Handle(PropagationFailureContext failure) => handler(failure);
+    }
+
+    private sealed class DelegateContextPropagationStrategyPolicy<TContext>(
+        Func<ContextPropagationStrategyPolicyContext, ContextOversizeBehavior> policy)
+        : IContextPropagationStrategyPolicy<TContext>
+        where TContext : class
+    {
+        public ContextOversizeBehavior Select(ContextPropagationStrategyPolicyContext context) => policy(context);
     }
 }

@@ -65,14 +65,37 @@ public sealed class ContextMapBuilder<TContext>
         ContextOversizeBehavior? oversizeBehaviorOverride)
     {
         _registrationBuilder.Services.AddSingleton<IPropertyMapping<TContext>>(
-            sp => PropertyMapping.Create(
-                property,
-                key,
-                sp.GetService<IContextPayloadSerializer<TContext>>(),
-                sp.GetService<IContextTransportPolicy<TContext>>(),
-                sp.GetService<IContextPayloadChunkingStrategy<TContext>>(),
-                requirement,
-                oversizeBehaviorOverride ?? _defaultOversizeBehavior));
+            sp =>
+            {
+                var executionScope = sp.GetRequiredService<IPropagationExecutionScope>();
+                var policyRegistry = sp.GetService<ContextPropagationStrategyPolicyRegistry<TContext>>();
+                return PropertyMapping.Create(
+                    property,
+                    key,
+                    sp.GetService<IContextPayloadSerializer<TContext>>(),
+                    sp.GetService<IContextTransportPolicy<TContext>>(),
+                    sp.GetService<IContextPayloadChunkingStrategy<TContext>>(),
+                    ctx =>
+                    {
+                        var policy = policyRegistry?.Resolve(sp, executionScope.CurrentDomain);
+                        if (policy is null)
+                            return null;
+
+                        var policyContext = new ContextPropagationStrategyPolicyContext
+                        {
+                            ContextType = ctx.ContextType,
+                            Key = ctx.Key,
+                            PropertyType = ctx.PropertyType,
+                            Direction = ctx.Direction,
+                            PayloadSizeBytes = ctx.PayloadSizeBytes,
+                            Domain = executionScope.CurrentDomain
+                        };
+
+                        return policy.Select(policyContext);
+                    },
+                    requirement,
+                    oversizeBehaviorOverride ?? _defaultOversizeBehavior);
+            });
 
         _registrationBuilder.Services.TryAddSingleton<IPropagationExecutionScope, AsyncLocalPropagationExecutionScope>();
         _registrationBuilder.Services.TryAddSingleton<IContextPropagator<TContext>>(sp =>

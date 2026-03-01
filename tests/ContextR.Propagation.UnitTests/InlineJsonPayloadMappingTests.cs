@@ -220,6 +220,124 @@ public sealed class InlineJsonPayloadMappingTests
         Assert.DoesNotContain(carrier.Keys, k => k.StartsWith("X-User__chunk_", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void MapProperty_WithTypedStrategyPolicy_UsesPolicyWhenNoOverrides()
+    {
+        var services = new ServiceCollection();
+
+        services.AddContextR(builder =>
+        {
+            builder.Add<TestContext>(reg => reg
+                .UseInlineJsonPayloads<TestContext>(o => o.MaxPayloadBytes = 20)
+                .UseChunkingPayloads<TestContext>()
+                .UseStrategyPolicy<TestContext, ChunkTagsTypedPolicy>()
+                .MapProperty(c => c.Tags, "X-Tags"));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<TestContext>>();
+
+        var carrier = new Dictionary<string, string>();
+        propagator.Inject(
+            new TestContext { Tags = Enumerable.Repeat("value", 10).ToList() },
+            carrier,
+            static (c, k, v) => c[k] = v);
+
+        Assert.Contains("X-Tags__chunks", carrier.Keys);
+        Assert.Contains(carrier.Keys, k => k.StartsWith("X-Tags__chunk_", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void MapProperty_WithDelegateStrategyPolicyFactory_ResolvesFromServiceProvider()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton(new StrategyPolicySettings { Mode = ContextOversizeBehavior.SkipProperty });
+
+        services.AddContextR(builder =>
+        {
+            builder.Add<TestContext>(reg => reg
+                .UseInlineJsonPayloads<TestContext>(o => o.MaxPayloadBytes = 20)
+                .UseChunkingPayloads<TestContext>()
+                .UseStrategyPolicy<TestContext>(sp =>
+                {
+                    var settings = sp.GetRequiredService<StrategyPolicySettings>();
+                    return ctx => ctx.Key == "X-Tags"
+                        ? settings.Mode
+                        : ContextOversizeBehavior.FailFast;
+                })
+                .MapProperty(c => c.Tags, "X-Tags"));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<TestContext>>();
+
+        var carrier = new Dictionary<string, string>();
+        propagator.Inject(
+            new TestContext { Tags = Enumerable.Repeat("value", 10).ToList() },
+            carrier,
+            static (c, k, v) => c[k] = v);
+
+        Assert.DoesNotContain("X-Tags", carrier.Keys);
+        Assert.DoesNotContain("X-Tags__chunks", carrier.Keys);
+    }
+
+    [Fact]
+    public void MapDsl_PolicyPrecedence_PropertyOverrideWinsOverPolicy()
+    {
+        var services = new ServiceCollection();
+
+        services.AddContextR(builder =>
+        {
+            builder.Add<TestContext>(reg => reg
+                .UseInlineJsonPayloads<TestContext>(o => o.MaxPayloadBytes = 20)
+                .UseChunkingPayloads<TestContext>()
+                .UseStrategyPolicy<TestContext, ChunkTagsTypedPolicy>()
+                .Map(m => m
+                    .Property(c => c.Tags, "X-Tags").OversizeBehavior(ContextOversizeBehavior.SkipProperty).Optional()));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<TestContext>>();
+
+        var carrier = new Dictionary<string, string>();
+        propagator.Inject(
+            new TestContext { Tags = Enumerable.Repeat("value", 10).ToList() },
+            carrier,
+            static (c, k, v) => c[k] = v);
+
+        Assert.DoesNotContain("X-Tags__chunks", carrier.Keys);
+        Assert.DoesNotContain("X-Tags", carrier.Keys);
+    }
+
+    [Fact]
+    public void MapDsl_PolicyPrecedence_ContextDefaultWinsOverPolicy()
+    {
+        var services = new ServiceCollection();
+
+        services.AddContextR(builder =>
+        {
+            builder.Add<TestContext>(reg => reg
+                .UseInlineJsonPayloads<TestContext>(o => o.MaxPayloadBytes = 20)
+                .UseChunkingPayloads<TestContext>()
+                .UseStrategyPolicy<TestContext, ChunkTagsTypedPolicy>()
+                .Map(m => m
+                    .DefaultOversizeBehavior(ContextOversizeBehavior.SkipProperty)
+                    .Property(c => c.Tags, "X-Tags").Optional()));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<TestContext>>();
+
+        var carrier = new Dictionary<string, string>();
+        propagator.Inject(
+            new TestContext { Tags = Enumerable.Repeat("value", 10).ToList() },
+            carrier,
+            static (c, k, v) => c[k] = v);
+
+        Assert.DoesNotContain("X-Tags__chunks", carrier.Keys);
+        Assert.DoesNotContain("X-Tags", carrier.Keys);
+    }
+
     public sealed class TestContext
     {
         public string? TenantId { get; set; }
@@ -231,5 +349,20 @@ public sealed class InlineJsonPayloadMappingTests
     {
         public string Name { get; set; } = string.Empty;
         public int Age { get; set; }
+    }
+
+    private sealed class ChunkTagsTypedPolicy : IContextPropagationStrategyPolicy<TestContext>
+    {
+        public ContextOversizeBehavior Select(ContextPropagationStrategyPolicyContext context)
+        {
+            return context.Key == "X-Tags"
+                ? ContextOversizeBehavior.ChunkProperty
+                : ContextOversizeBehavior.FailFast;
+        }
+    }
+
+    private sealed class StrategyPolicySettings
+    {
+        public ContextOversizeBehavior Mode { get; set; }
     }
 }

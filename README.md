@@ -493,6 +493,49 @@ ctx.Add<RequestContext>(reg => reg
         .Property(c => c.Payload, "X-Payload").Optional()));
 ```
 
+You can also add a runtime oversize strategy policy and keep mappings declarative:
+
+```csharp
+ctx.Add<RequestContext>(reg => reg
+    .UseInlineJsonPayloads<RequestContext>(o => o.MaxPayloadBytes = 256)
+    .UseChunkingPayloads<RequestContext>()
+    .UseStrategyPolicy<RequestContext, RequestStrategyPolicy>()
+    .MapProperty(c => c.Tags, "X-Tags")
+    .MapProperty(c => c.Payload, "X-Payload"));
+
+public sealed class RequestStrategyPolicy : IContextPropagationStrategyPolicy<RequestContext>
+{
+    public ContextOversizeBehavior Select(ContextPropagationStrategyPolicyContext context)
+    {
+        return context.Key == "X-Tags"
+            ? ContextOversizeBehavior.ChunkProperty
+            : ContextOversizeBehavior.SkipProperty;
+    }
+}
+```
+
+Or use a delegate resolved from DI:
+
+```csharp
+ctx.Add<RequestContext>(reg => reg
+    .UseInlineJsonPayloads<RequestContext>(o => o.MaxPayloadBytes = 256)
+    .UseChunkingPayloads<RequestContext>()
+    .UseStrategyPolicy<RequestContext>(sp => policyContext =>
+        policyContext.Key == "X-Tags"
+            ? ContextOversizeBehavior.ChunkProperty
+            : ContextOversizeBehavior.SkipProperty)
+    .MapProperty(c => c.Tags, "X-Tags")
+    .MapProperty(c => c.Payload, "X-Payload"));
+```
+
+Oversize decision precedence:
+
+- property override (`OversizeBehavior(...)` / `MapProperty(..., oversizeBehaviorOverride)`)
+- mapping default (`DefaultOversizeBehavior(...)`)
+- runtime strategy policy (`UseStrategyPolicy(...)`)
+- transport policy default (`UseInlineJsonPayloads(...).OversizeBehavior`)
+- `FailFast`
+
 ### Propagation failure handling
 
 You can hook failures (required missing, parse issues, oversize, token-fallback unavailable) and choose behavior:

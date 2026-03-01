@@ -50,6 +50,51 @@ ctx.Add<CorrelationContext>(reg => reg
 - `DefaultOversizeBehavior(...)` sets context-level oversize strategy default for DSL mappings.
 - `OversizeBehavior(...)` on a property overrides the context-level default for that property.
 
+### Runtime oversize strategy policy
+
+When you need runtime decisions (per key, direction, domain, payload size), register a strategy policy:
+
+```csharp
+ctx.Add<RequestContext>(reg => reg
+    .UseInlineJsonPayloads<RequestContext>(o => o.MaxPayloadBytes = 256)
+    .UseChunkingPayloads<RequestContext>()
+    .UseStrategyPolicy<RequestContext, RequestStrategyPolicy>()
+    .MapProperty(c => c.Tags, "X-Tags")
+    .MapProperty(c => c.Payload, "X-Payload"));
+
+public sealed class RequestStrategyPolicy : IContextPropagationStrategyPolicy<RequestContext>
+{
+    public ContextOversizeBehavior Select(ContextPropagationStrategyPolicyContext context)
+    {
+        return context.Key == "X-Tags"
+            ? ContextOversizeBehavior.ChunkProperty
+            : ContextOversizeBehavior.SkipProperty;
+    }
+}
+```
+
+Delegate-based registration is also supported:
+
+```csharp
+ctx.Add<RequestContext>(reg => reg
+    .UseInlineJsonPayloads<RequestContext>(o => o.MaxPayloadBytes = 256)
+    .UseChunkingPayloads<RequestContext>()
+    .UseStrategyPolicy<RequestContext>(sp => policyContext =>
+        policyContext.Key == "X-Tags"
+            ? ContextOversizeBehavior.ChunkProperty
+            : ContextOversizeBehavior.SkipProperty)
+    .MapProperty(c => c.Tags, "X-Tags")
+    .MapProperty(c => c.Payload, "X-Payload"));
+```
+
+Oversize decision precedence:
+
+1. property override (`OversizeBehavior(...)` / `MapProperty(..., oversizeBehaviorOverride)`)
+2. mapping default (`DefaultOversizeBehavior(...)`)
+3. runtime strategy policy (`UseStrategyPolicy(...)`)
+4. transport policy default (`UseInlineJsonPayloads(...).OversizeBehavior`)
+5. `FailFast`
+
 ## How it works
 
 ### Registration
@@ -125,6 +170,8 @@ Available abstractions:
 - `IContextPayloadSerializer<TContext>` -- serialize/deserialize mapped property payloads
 - `IContextTransportPolicy<TContext>` -- payload size constraints + oversize behavior
 - `IContextPayloadChunkingStrategy<TContext>` -- strategy contract for chunk split/reassembly
+- `IContextPropagationStrategyPolicy<TContext>` -- runtime oversize strategy selection
+- `ContextPropagationStrategyPolicyContext` -- policy input (key, type, direction, domain, payload bytes)
 - `ContextOversizeBehavior` -- `FailFast`, `SkipProperty`, `ChunkProperty`, `FallbackToToken`
 
 For production-ready non-primitive support, combine dedicated strategy packages:
