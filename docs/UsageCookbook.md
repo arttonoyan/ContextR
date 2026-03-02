@@ -119,6 +119,41 @@ ctx.AddDomain("public-api", d => d.Add<UserContext>(reg => reg
     .OnPropagationFailure<UserContext>(_ => PropagationFailureAction.SkipProperty)));
 ```
 
+## Pattern: ASP.NET Core ingress enforcement
+
+```csharp
+ctx.Add<UserContext>(reg => reg
+    .Map(m => m
+        .ByConvention()
+        .Property(c => c.TenantId, "X-Tenant-Id")
+        .Property(c => c.TraceId, "X-Trace-Id"))
+    .UseAspNetCore(o => o.Enforcement(e =>
+    {
+        e.Mode = ContextIngressEnforcementMode.FailRequest;
+        e.OnFailure = failure => ContextIngressFailureDecision.Fail(400, "Tenant context is required.");
+    })));
+```
+
+DI-aware variant:
+
+```csharp
+ctx.Add<UserContext>(reg => reg
+    .Map(m => m.ByConvention().Property(c => c.TenantId, "X-Tenant-Id"))
+    .UseAspNetCore((sp, o) =>
+    {
+        var logger = sp.GetRequiredService<ILogger<Startup>>();
+        o.Enforcement(e =>
+        {
+            e.Mode = ContextIngressEnforcementMode.ObserveOnly;
+            e.OnFailure = f =>
+            {
+                logger.LogWarning("Context ingress issue: {Reason}", f.Reason);
+                return ContextIngressFailureDecision.Continue();
+            };
+        });
+    }));
+```
+
 ## Pattern: background processing with snapshots
 
 ```csharp

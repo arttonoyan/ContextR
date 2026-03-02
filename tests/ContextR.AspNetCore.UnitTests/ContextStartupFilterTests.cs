@@ -23,6 +23,64 @@ public sealed class ContextStartupFilterTests
     }
 
     [Fact]
+    public void UseAspNetCore_WithConfigure_RegistersStartupFilter_AndOptions()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(ctx => ctx.Add<TestContext>(reg => reg
+            .MapProperty(c => c.TenantId, "X-Tenant-Id")
+            .UseAspNetCore(o => o.Enforcement(e => e.Mode = ContextIngressEnforcementMode.FailRequest))));
+
+        using var provider = services.BuildServiceProvider();
+        var registry = provider.GetRequiredService<ContextRAspNetCoreOptionsRegistry<TestContext>>();
+        var options = registry.Resolve(provider, domain: null);
+
+        Assert.Equal(ContextIngressEnforcementMode.FailRequest, options.EnforcementOptions.Mode);
+    }
+
+    [Fact]
+    public void UseAspNetCore_WithFactoryConfigure_CanResolveServices()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<MarkerService>();
+
+        services.AddContextR(ctx => ctx.Add<TestContext>(reg => reg
+            .MapProperty(c => c.TenantId, "X-Tenant-Id")
+            .UseAspNetCore(sp =>
+            {
+                _ = sp.GetRequiredService<MarkerService>();
+                return new ContextRAspNetCoreOptions<TestContext>()
+                    .Enforcement(e => e.Mode = ContextIngressEnforcementMode.ObserveOnly);
+            })));
+
+        using var provider = services.BuildServiceProvider();
+        var registry = provider.GetRequiredService<ContextRAspNetCoreOptionsRegistry<TestContext>>();
+        var options = registry.Resolve(provider, domain: null);
+
+        Assert.Equal(ContextIngressEnforcementMode.ObserveOnly, options.EnforcementOptions.Mode);
+    }
+
+    [Fact]
+    public void UseAspNetCore_WithServiceProviderAndOptionsCallback_CanResolveServices()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<MarkerService>();
+
+        services.AddContextR(ctx => ctx.Add<TestContext>(reg => reg
+            .MapProperty(c => c.TenantId, "X-Tenant-Id")
+            .UseAspNetCore((sp, o) =>
+            {
+                _ = sp.GetRequiredService<MarkerService>();
+                o.Enforcement(e => e.Mode = ContextIngressEnforcementMode.FailRequest);
+            })));
+
+        using var provider = services.BuildServiceProvider();
+        var registry = provider.GetRequiredService<ContextRAspNetCoreOptionsRegistry<TestContext>>();
+        var options = registry.Resolve(provider, domain: null);
+
+        Assert.Equal(ContextIngressEnforcementMode.FailRequest, options.EnforcementOptions.Mode);
+    }
+
+    [Fact]
     public void UseAspNetCore_CanBeChainedWithOtherMethods()
     {
         var services = new ServiceCollection();
@@ -104,4 +162,6 @@ public sealed class ContextStartupFilterTests
         public string? TenantId { get; set; }
         public string? UserId { get; set; }
     }
+
+    private sealed class MarkerService;
 }

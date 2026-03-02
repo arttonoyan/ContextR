@@ -110,6 +110,49 @@ Recommended first tests:
 
 For full examples, see [samples](../samples/README.md).
 
+## Optional: fail requests when required ingress context is missing
+
+```csharp
+builder.Services.AddContextR(ctx =>
+{
+    ctx.Add<UserContext>(reg => reg
+        .Map(m => m
+            .ByConvention()
+            .Property(c => c.TenantId, "X-Tenant-Id")
+            .Property(c => c.TraceId, "X-Trace-Id")
+            .Property(c => c.UserId, "X-User-Id"))
+        .UseAspNetCore(o => o.Enforcement(e =>
+        {
+            e.Mode = ContextIngressEnforcementMode.FailRequest;
+            e.OnFailure = _ => ContextIngressFailureDecision.Fail(400, "Required context is missing.");
+        }))
+        .UseGlobalHttpPropagation());
+});
+```
+
+Need service access while configuring ASP.NET Core transport options?
+
+```csharp
+builder.Services.AddContextR(ctx =>
+{
+    ctx.Add<UserContext>(reg => reg
+        .Map(m => m.ByConvention().Property(c => c.TenantId, "X-Tenant-Id"))
+        .UseAspNetCore((sp, o) =>
+        {
+            var logger = sp.GetRequiredService<ILogger<Startup>>();
+            o.Enforcement(e =>
+            {
+                e.Mode = ContextIngressEnforcementMode.ObserveOnly;
+                e.OnFailure = _ =>
+                {
+                    logger.LogWarning("Context ingress validation issue.");
+                    return ContextIngressFailureDecision.Continue();
+                };
+            });
+        }));
+});
+```
+
 ## Optional: Ingress resolution (gateway / first-hop)
 
 If you also want to resolve context at ingress (for example from JWT claims), add `ContextR.Resolution` and configure `UseResolver(...)`.

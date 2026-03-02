@@ -58,7 +58,7 @@ Using `IStartupFilter` instead of requiring `app.UseMiddleware<T>()` in `Program
 The middleware runs on every request:
 
 ```
-InvokeAsync(HttpContext, IContextPropagator<TContext>, IContextWriter)
+InvokeAsync(HttpContext, IContextPropagator<TContext>, IContextWriter, IServiceProvider, ...)
   → context = propagator.Extract(httpContext.Request.Headers, headerGetter)
   → if context is not null:
       writer.SetContext(context)      // writes to AsyncLocal
@@ -76,6 +76,65 @@ static (headers, key) => headers.TryGetValue(key, out var values) ? (string?)val
 If the propagator's `Extract` method returns `null` (no matching headers found), the middleware does nothing -- no context is written, and the request continues normally. Downstream code calling `GetContext<T>()` will receive `null`.
 
 If only some headers are present (partial extraction), the behavior depends on the propagator implementation. `MappingContextPropagator` returns a context object with only the found properties set -- `null` properties for missing headers.
+
+## Ingress enforcement (optional)
+
+`UseAspNetCore(...)` supports ingress enforcement with fluent options:
+
+```csharp
+ctx.Add<UserContext>(reg => reg
+    .Map(m => m
+        .ByConvention()
+        .Property(c => c.TenantId, "X-Tenant-Id")
+        .Property(c => c.TraceId, "X-Trace-Id"))
+    .UseAspNetCore(o => o.Enforcement(e =>
+    {
+        e.Mode = ContextIngressEnforcementMode.FailRequest;
+        e.OnFailure = failure => ContextIngressFailureDecision.Fail(
+            statusCode: 400,
+            message: "Required context is missing.");
+    })));
+```
+
+Available modes:
+
+- `Disabled`: extraction-only behavior (default)
+- `ObserveOnly`: invoke failure callback/logging but continue request
+- `FailRequest`: short-circuit request unless callback overrides decision
+
+You can also provide fallback context creation:
+
+```csharp
+.UseAspNetCore(o => o.Enforcement(e =>
+{
+    e.Mode = ContextIngressEnforcementMode.FailRequest;
+    e.FallbackContextFactory = http => new UserContext
+    {
+        TenantId = "default-tenant",
+        TraceId = http.TraceIdentifier
+    };
+}))
+```
+
+### DI-aware fluent configuration
+
+When configuration needs services (for example a logger), use the DI-aware overload:
+
+```csharp
+.UseAspNetCore((sp, o) =>
+{
+    var logger = sp.GetRequiredService<ILogger<Startup>>();
+    o.Enforcement(e =>
+    {
+        e.Mode = ContextIngressEnforcementMode.ObserveOnly;
+        e.OnFailure = failure =>
+        {
+            logger.LogWarning("Context enforcement failure: {Reason}", failure.Reason);
+            return ContextIngressFailureDecision.Continue();
+        };
+    });
+})
+```
 
 ## Domain-aware extraction
 

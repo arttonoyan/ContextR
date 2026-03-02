@@ -33,7 +33,11 @@ builder.Services.AddContextR(ctx =>
             .Property(c => c.TenantId, "X-Tenant-Id")
             .Property(c => c.TraceId, "X-Trace-Id")
             .Property(c => c.UserId, "X-User-Id").Optional())
-        .UseAspNetCore()
+        .UseAspNetCore(o => o.Enforcement(e =>
+        {
+            e.Mode = ContextIngressEnforcementMode.FailRequest;
+            e.OnFailure = _ => ContextIngressFailureDecision.Fail(400, "Tenant context is required.");
+        }))
         .UseGlobalHttpPropagation());
 });
 ```

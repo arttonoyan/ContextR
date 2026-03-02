@@ -104,6 +104,29 @@ public sealed class DomainContextMiddlewareTests
         Assert.Null(domainContext);
     }
 
+    [Fact]
+    public async Task Middleware_DomainAware_EnforcementFailRequest_BlocksWhenRequiredMissing()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(ctx =>
+        {
+            ctx.Add<TestContext>()
+               .AddDomain("orders", d => d.Add<TestContext>(reg => reg
+                   .Map(m => m.Property(c => c.TenantId, "X-Tenant-Id").Required())
+                   .UseAspNetCore(o => o.Enforcement(e => e.Mode = ContextIngressEnforcementMode.FailRequest))));
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var propagator = provider.GetRequiredService<IContextPropagator<TestContext>>();
+        var writer = provider.GetRequiredService<IContextWriter>();
+        var middleware = new ContextMiddleware<TestContext>(_ => Task.CompletedTask, domain: "orders");
+        var httpContext = new DefaultHttpContext { RequestServices = provider };
+
+        await middleware.InvokeAsync(httpContext, propagator, writer, provider);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
+    }
+
     public class TestContext
     {
         public string? TenantId { get; set; }

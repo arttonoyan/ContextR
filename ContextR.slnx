@@ -54,6 +54,7 @@
     <Project Path="tests/ContextR.Propagation.Strategies.IntegrationTests/ContextR.Propagation.Strategies.IntegrationTests.csproj" Id="5b6c7d8e-9f0a-41b2-d345-778899001144" />
     <Project Path="tests/ContextR.Http.UnitTests/ContextR.Transport.Http.UnitTests.csproj" Id="c3d4e5f6-7890-12cd-efab-334455667788" />
     <Project Path="tests/ContextR.AspNetCore.UnitTests/ContextR.Hosting.AspNetCore.UnitTests.csproj" Id="d4e5f6a7-8901-23de-fabc-445566778899" />
+    <Project Path="tests/ContextR.AspNetCore.IntegrationTests/ContextR.Hosting.AspNetCore.IntegrationTests.csproj" Id="7c1f9f3d-9f46-4f71-bfdd-641f4ff4f44a" />
     <Project Path="tests/ContextR.Http.IntegrationTests/ContextR.Transport.Http.IntegrationTests.csproj" Id="e5f6a7b8-0123-45ef-bcde-556677889911" />
     <Project Path="tests/ContextR.Grpc.UnitTests/ContextR.Transport.Grpc.UnitTests.csproj" Id="4fa6af2e-0b2f-4a8a-8f57-ceca0953ac00" />
     <Project Path="tests/ContextR.Grpc.IntegrationTests/ContextR.Transport.Grpc.IntegrationTests.csproj" Id="9b144daa-29d3-43f1-bd2d-a5e20d96f9c0" />
