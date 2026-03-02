@@ -118,11 +118,12 @@ If you also want to resolve context at ingress (for example from JWT claims), ad
 builder.Services.AddContextR(ctx =>
 {
     ctx.Add<UserContext>(reg => reg
-        .UseResolver(_ => new UserContext { UserId = "resolved-user" }));
+        .AddResolution(r => r
+            .UseResolver(_ => new UserContext { UserId = "resolved-user" })));
 });
 ```
 
 Notes:
 
 - `UseResolver(...)` and `UseResolutionPolicy(...)` auto-register resolution services.
-- `UseResolution()` is optional and useful only when you need orchestrator/policy services before resolver/policy registration.
+- `AddContextRResolution()` is only for advanced scenarios where you need orchestrator/policy services before resolver/policy registration.

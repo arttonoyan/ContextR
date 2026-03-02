@@ -28,7 +28,8 @@ public sealed class UserContext
 builder.Services.AddContextR(ctx =>
 {
     ctx.Add<UserContext>(reg => reg
-        .UseResolver<UserContext, JwtClaimsUserContextResolver>()
+        .AddResolution(r => r
+            .UseResolver<JwtClaimsUserContextResolver>())
         .MapProperty(c => c.TenantId, "X-Tenant-Id")
         .MapProperty(c => c.UserId, "X-User-Id")
         .MapProperty(c => c.TraceId, "X-Trace-Id")

@@ -43,7 +43,8 @@ Enable resolution from inside `AddContextR(...)`:
 builder.Services.AddContextR(ctx =>
 {
     ctx.Add<UserContext>(reg => reg
-        .UseResolver<UserContext, JwtUserContextResolver>());
+        .AddResolution(r => r
+            .UseResolver<JwtUserContextResolver>()));
 });
 ```
 
@@ -52,9 +53,17 @@ builder.Services.AddContextR(ctx =>
 That means these two patterns are both valid:
 
 - direct resolver/policy registration and let ContextR auto-register resolution services (recommended)
-- explicit activation first (`UseResolution()`), then resolver/policy registration (advanced/optional)
+- explicit package bootstrap with `AddContextRResolution()`, then resolver/policy registration (advanced/optional)
 
-Resolver registration:
+Resolver registration (recommended):
+
+```csharp
+ctx.Add<UserContext>(reg => reg
+    .AddResolution(r => r
+        .UseResolver<JwtUserContextResolver>()));
+```
+
+Or direct resolver registration without nested builder:
 
 ```csharp
 ctx.Add<UserContext>(reg => reg
@@ -72,7 +81,8 @@ Policy registration:
 
 ```csharp
 ctx.Add<UserContext>(reg => reg
-    .UseResolutionPolicy<UserContext, CustomUserResolutionPolicy>());
+    .AddResolution(r => r
+        .UseResolutionPolicy<CustomUserResolutionPolicy>()));
 ```
 
 Or delegate-based policy:

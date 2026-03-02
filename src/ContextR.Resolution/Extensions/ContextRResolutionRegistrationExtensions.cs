@@ -1,7 +1,3 @@
-using System.Linq;
-using ContextR.Resolution.Internal;
-using Microsoft.Extensions.DependencyInjection;
-
 namespace ContextR.Resolution;
 
 /// <summary>
@@ -9,6 +5,22 @@ namespace ContextR.Resolution;
 /// </summary>
 public static class ContextRResolutionRegistrationExtensions
 {
+    /// <summary>
+    /// Opens a resolution-specific fluent scope for this context registration.
+    /// </summary>
+    public static IContextRegistrationBuilder<TContext> AddResolution<TContext>(
+        this IContextRegistrationBuilder<TContext> builder,
+        Action<IResolutionBuilder<TContext>> configure)
+        where TContext : class
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        builder.Services.AddContextRResolution();
+        configure(new ResolutionBuilder<TContext>(builder));
+        return builder;
+    }
+
     /// <summary>
     /// Registers a typed resolver implementation.
     /// </summary>
@@ -18,12 +30,7 @@ public static class ContextRResolutionRegistrationExtensions
         where TResolver : class, IContextResolver<TContext>
     {
         ArgumentNullException.ThrowIfNull(builder);
-        EnsureResolutionCore(builder.Services);
-
-        builder.Services.AddSingleton<TResolver>();
-        var registry = GetOrAddResolverRegistry<TContext>(builder.Services);
-        registry.TryAdd(builder.Domain, sp => sp.GetRequiredService<TResolver>());
-        return builder;
+        return builder.AddResolution(r => r.UseResolver<TResolver>());
     }
 
     /// <summary>
@@ -36,11 +43,7 @@ public static class ContextRResolutionRegistrationExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(resolver);
-        EnsureResolutionCore(builder.Services);
-
-        var registry = GetOrAddResolverRegistry<TContext>(builder.Services);
-        registry.TryAdd(builder.Domain, _ => new DelegateContextResolver<TContext>(resolver));
-        return builder;
+        return builder.AddResolution(r => r.UseResolver(resolver));
     }
 
     /// <summary>
@@ -53,11 +56,7 @@ public static class ContextRResolutionRegistrationExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(factory);
-        EnsureResolutionCore(builder.Services);
-
-        var registry = GetOrAddResolverRegistry<TContext>(builder.Services);
-        registry.TryAdd(builder.Domain, factory);
-        return builder;
+        return builder.AddResolution(r => r.UseResolver(factory));
     }
 
     /// <summary>
@@ -69,12 +68,7 @@ public static class ContextRResolutionRegistrationExtensions
         where TPolicy : class, IContextResolutionPolicy<TContext>
     {
         ArgumentNullException.ThrowIfNull(builder);
-        EnsureResolutionCore(builder.Services);
-
-        builder.Services.AddSingleton<TPolicy>();
-        var registry = GetOrAddPolicyRegistry<TContext>(builder.Services);
-        registry.TryAdd(builder.Domain, sp => sp.GetRequiredService<TPolicy>());
-        return builder;
+        return builder.AddResolution(r => r.UseResolutionPolicy<TPolicy>());
     }
 
     /// <summary>
@@ -87,11 +81,7 @@ public static class ContextRResolutionRegistrationExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(policy);
-        EnsureResolutionCore(builder.Services);
-
-        var registry = GetOrAddPolicyRegistry<TContext>(builder.Services);
-        registry.TryAdd(builder.Domain, _ => new DelegateContextResolutionPolicy<TContext>(policy));
-        return builder;
+        return builder.AddResolution(r => r.UseResolutionPolicy(policy));
     }
 
     /// <summary>
@@ -104,61 +94,6 @@ public static class ContextRResolutionRegistrationExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(factory);
-        EnsureResolutionCore(builder.Services);
-
-        var registry = GetOrAddPolicyRegistry<TContext>(builder.Services);
-        registry.TryAdd(builder.Domain, factory);
-        return builder;
-    }
-
-    private static void EnsureResolutionCore(IServiceCollection services)
-    {
-        services.AddContextRResolution();
-    }
-
-    private static ContextResolverRegistry<TContext> GetOrAddResolverRegistry<TContext>(IServiceCollection services)
-        where TContext : class
-    {
-        var existing = services
-            .FirstOrDefault(d => d.ServiceType == typeof(ContextResolverRegistry<TContext>))
-            ?.ImplementationInstance as ContextResolverRegistry<TContext>;
-
-        if (existing is not null)
-            return existing;
-
-        var created = new ContextResolverRegistry<TContext>();
-        services.AddSingleton(created);
-        return created;
-    }
-
-    private static ContextResolutionPolicyRegistry<TContext> GetOrAddPolicyRegistry<TContext>(IServiceCollection services)
-        where TContext : class
-    {
-        var existing = services
-            .FirstOrDefault(d => d.ServiceType == typeof(ContextResolutionPolicyRegistry<TContext>))
-            ?.ImplementationInstance as ContextResolutionPolicyRegistry<TContext>;
-
-        if (existing is not null)
-            return existing;
-
-        var created = new ContextResolutionPolicyRegistry<TContext>();
-        services.AddSingleton(created);
-        return created;
-    }
-
-    private sealed class DelegateContextResolver<TContext>(
-        Func<ContextResolutionContext, TContext?> resolver)
-        : IContextResolver<TContext>
-        where TContext : class
-    {
-        public TContext? Resolve(ContextResolutionContext context) => resolver(context);
-    }
-
-    private sealed class DelegateContextResolutionPolicy<TContext>(
-        Func<ContextResolutionPolicyContext<TContext>, ContextResolutionResult<TContext>> policy)
-        : IContextResolutionPolicy<TContext>
-        where TContext : class
-    {
-        public ContextResolutionResult<TContext> Resolve(ContextResolutionPolicyContext<TContext> context) => policy(context);
+        return builder.AddResolution(r => r.UseResolutionPolicy(factory));
     }
 }

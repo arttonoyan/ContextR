@@ -142,11 +142,8 @@ public sealed class ResolutionIntegrationTests
     {
         using var provider = CreateProvider(services =>
         {
-            services.AddContextR(builder =>
-            {
-                builder.UseResolution();
-                builder.Add<UserContext>();
-            });
+            services.AddContextRResolution();
+            services.AddContextR(builder => builder.Add<UserContext>());
         });
 
         var orchestrator = provider.GetRequiredService<IContextResolutionOrchestrator<UserContext>>();

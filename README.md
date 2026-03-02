@@ -158,7 +158,7 @@ Real-world examples are available under [`samples`](samples):
 `ContextR.Resolution` stays optional by design.  
 If you use `UseResolver(...)` or `UseResolutionPolicy(...)`, resolution services are auto-registered for you.
 
-Use `UseResolution()` only when you want orchestrator/policy services without registering a resolver/policy yet.
+Use `AddContextRResolution()` only for advanced cases where you need orchestrator/policy services without configuring resolver/policy registrations yet.
 
 ## Design Principles
 

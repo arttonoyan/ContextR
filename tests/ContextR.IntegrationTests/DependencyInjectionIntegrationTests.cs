@@ -100,6 +100,24 @@ public sealed class DependencyInjectionIntegrationTests
     }
 
     [Fact]
+    public void AddResolution_FluentBuilder_RegistersTypedResolver_WithoutRepeatingContextType()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<UserContext>(reg => reg
+                .AddResolution(r => r.UseResolver<TypedUserContextResolver>()));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var orchestrator = provider.GetRequiredService<IContextResolutionOrchestrator<UserContext>>();
+        var result = orchestrator.Resolve(new ContextResolutionContext { Boundary = ContextIngressBoundary.External });
+
+        Assert.Equal("typed-resolver", result.Context?.UserId);
+        Assert.Equal(ContextResolutionSource.Resolver, result.Source);
+    }
+
+    [Fact]
     public void AddContextR_RegistersScopedSnapshot_CapturedAtResolutionTime()
     {
         using var provider = CreateProvider();
