@@ -42,8 +42,8 @@ Enable resolution from inside `AddContextR(...)`:
 ```csharp
 builder.Services.AddContextR(ctx =>
 {
-    ctx.UseResolution();
-    ctx.Add<UserContext>();
+    ctx.Add<UserContext>(reg => reg
+        .UseResolver<UserContext, JwtUserContextResolver>());
 });
 ```
 
@@ -51,8 +51,8 @@ builder.Services.AddContextR(ctx =>
 
 That means these two patterns are both valid:
 
-- explicit activation first (`UseResolution()`), then resolver/policy registration
-- direct resolver/policy registration and let ContextR auto-register resolution services
+- direct resolver/policy registration and let ContextR auto-register resolution services (recommended)
+- explicit activation first (`UseResolution()`), then resolver/policy registration (advanced/optional)
 
 Resolver registration:
 

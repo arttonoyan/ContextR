@@ -27,8 +27,6 @@ public sealed class UserContext
 ```csharp
 builder.Services.AddContextR(ctx =>
 {
-    ctx.UseResolution();
-
     ctx.Add<UserContext>(reg => reg
         .UseResolver<UserContext, JwtClaimsUserContextResolver>()
         .MapProperty(c => c.TenantId, "X-Tenant-Id")
@@ -38,6 +36,8 @@ builder.Services.AddContextR(ctx =>
         .UseGlobalHttpPropagation());
 });
 ```
+
+`UseResolver(...)` auto-registers resolution services, so no separate `AddContextRResolution()` call is needed in this flow.
 
 ## Step 2: implement resolver (JWT -> UserContext)
 
