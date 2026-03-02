@@ -12,6 +12,37 @@ namespace ContextR.Propagation.Mapping;
 public static class ContextRPropagationExtensions
 {
     /// <summary>
+    /// Enables nullability-based requirement conventions for mapped properties.
+    /// Non-nullable properties are treated as required, nullable properties as optional.
+    /// This behavior is enabled by default. Explicit <c>Required()</c>/<c>Optional()</c> calls always take precedence.
+    /// </summary>
+    public static IContextRegistrationBuilder<TContext> UseNullabilityConventions<TContext>(
+        this IContextRegistrationBuilder<TContext> builder)
+        where TContext : class
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var options = NullabilityRequirementConventions.GetOrAddOptions<TContext>(builder.Services);
+        options.Enabled = true;
+        return builder;
+    }
+
+    /// <summary>
+    /// Disables nullability-based requirement conventions for mapped properties.
+    /// When disabled, inferred requirement defaults to optional unless explicitly configured.
+    /// </summary>
+    public static IContextRegistrationBuilder<TContext> DisableNullabilityConventions<TContext>(
+        this IContextRegistrationBuilder<TContext> builder)
+        where TContext : class
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var options = NullabilityRequirementConventions.GetOrAddOptions<TContext>(builder.Services);
+        options.Enabled = false;
+        return builder;
+    }
+
+    /// <summary>
     /// Configures advanced property mappings through a fluent mapping DSL.
     /// </summary>
     /// <typeparam name="TContext">The context type.</typeparam>
@@ -20,13 +51,15 @@ public static class ContextRPropagationExtensions
     /// <returns>The same builder for fluent chaining.</returns>
     public static IContextRegistrationBuilder<TContext> Map<TContext>(
         this IContextRegistrationBuilder<TContext> builder,
-        Func<ContextMapBuilder<TContext>, ContextMapBuilder<TContext>> configure)
+        Action<ContextMapBuilder<TContext>> configure)
         where TContext : class
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);
 
-        _ = configure(new ContextMapBuilder<TContext>(builder));
+        var mapBuilder = new ContextMapBuilder<TContext>(builder);
+        configure(mapBuilder);
+        mapBuilder.CompletePendingProperties();
         return builder;
     }
 
@@ -59,6 +92,10 @@ public static class ContextRPropagationExtensions
         ArgumentNullException.ThrowIfNull(property);
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
+        var inferredRequirement = NullabilityRequirementConventions.IsEnabled<TContext>(builder.Services)
+            ? NullabilityRequirementConventions.ResolveRequirement(property)
+            : PropertyRequirement.Optional;
+
         builder.Services.AddSingleton<IPropertyMapping<TContext>>(
             sp =>
             {
@@ -88,6 +125,7 @@ public static class ContextRPropagationExtensions
 
                         return policy.Select(policyContext);
                     },
+                    requirement: inferredRequirement,
                     oversizeBehaviorOverride: oversizeBehaviorOverride);
             });
 

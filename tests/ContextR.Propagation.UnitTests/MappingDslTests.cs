@@ -108,7 +108,7 @@ public sealed class MappingDslTests
 
         Assert.NotNull(captured);
         Assert.Throws<ArgumentNullException>(() =>
-            ContextRPropagationExtensions.Map(captured!, (Func<ContextMapBuilder<TestContext>, ContextMapBuilder<TestContext>>)null!));
+            ContextRPropagationExtensions.Map(captured!, null!));
     }
 
     [Fact]
@@ -205,6 +205,162 @@ public sealed class MappingDslTests
         Assert.Null(extracted);
     }
 
+    [Fact]
+    public void UseNullabilityConventions_MapProperty_InfersRequiredForNonNullableProperty()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<ConventionContext>(reg => reg
+                .UseNullabilityConventions()
+                .MapProperty(c => c.TenantId, "X-Tenant-Id"));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<ConventionContext>>();
+
+        var ex = Assert.ThrowsAny<InvalidOperationException>(() =>
+            propagator.Extract(new Dictionary<string, string>(), static (c, k) => c.TryGetValue(k, out var v) ? v : null));
+
+        Assert.Contains("reason 'MissingRequired'", ex.Message);
+    }
+
+    [Fact]
+    public void UseNullabilityConventions_MapProperty_InfersOptionalForNullableProperty()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<ConventionContext>(reg => reg
+                .UseNullabilityConventions()
+                .MapProperty(c => c.UserId, "X-User-Id"));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<ConventionContext>>();
+
+        var extracted = propagator.Extract(new Dictionary<string, string>(), static (c, k) => c.TryGetValue(k, out var v) ? v : null);
+        Assert.Null(extracted);
+    }
+
+    [Fact]
+    public void UseNullabilityConventions_ByConvention_InfersRequiredForNonNullableProperty()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<ConventionContext>(reg => reg
+                .UseNullabilityConventions()
+                .Map(m => m
+                    .Property(c => c.TenantId, "X-Tenant-Id").ByConvention()));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<ConventionContext>>();
+
+        var ex = Assert.ThrowsAny<InvalidOperationException>(() =>
+            propagator.Extract(new Dictionary<string, string>(), static (c, k) => c.TryGetValue(k, out var v) ? v : null));
+
+        Assert.Contains("reason 'MissingRequired'", ex.Message);
+    }
+
+    [Fact]
+    public void MapProperty_DefaultConventions_InfersRequiredForNonNullableProperty()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<ConventionContext>(reg => reg
+                .MapProperty(c => c.TenantId, "X-Tenant-Id"));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<ConventionContext>>();
+
+        var ex = Assert.ThrowsAny<InvalidOperationException>(() =>
+            propagator.Extract(new Dictionary<string, string>(), static (c, k) => c.TryGetValue(k, out var v) ? v : null));
+
+        Assert.Contains("reason 'MissingRequired'", ex.Message);
+    }
+
+    [Fact]
+    public void DisableNullabilityConventions_MapProperty_TreatsNonNullableAsOptional()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<ConventionContext>(reg => reg
+                .DisableNullabilityConventions()
+                .MapProperty(c => c.TenantId, "X-Tenant-Id"));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<ConventionContext>>();
+
+        var extracted = propagator.Extract(new Dictionary<string, string>(), static (c, k) => c.TryGetValue(k, out var v) ? v : null);
+        Assert.Null(extracted);
+    }
+
+    [Fact]
+    public void Map_ByConvention_AppliesConventionToPropertiesWithoutTerminalCalls()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<ConventionContext>(reg => reg
+                .Map(m => m
+                    .ByConvention()
+                    .Property(c => c.TenantId, "X-Tenant-Id")
+                    .Property(c => c.UserId, "X-User-Id")));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<ConventionContext>>();
+
+        var ex = Assert.ThrowsAny<InvalidOperationException>(() =>
+            propagator.Extract(new Dictionary<string, string>(), static (c, k) => c.TryGetValue(k, out var v) ? v : null));
+
+        Assert.Contains("reason 'MissingRequired'", ex.Message);
+    }
+
+    [Fact]
+    public void Map_DefaultBehavior_WithoutTerminalCall_UsesOptional()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<ConventionContext>(reg => reg
+                .DisableNullabilityConventions()
+                .Map(m => m
+                    .Property(c => c.TenantId, "X-Tenant-Id")));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<ConventionContext>>();
+
+        var extracted = propagator.Extract(new Dictionary<string, string>(), static (c, k) => c.TryGetValue(k, out var v) ? v : null);
+        Assert.Null(extracted);
+    }
+
+    [Fact]
+    public void Map_ByConvention_ExplicitOptional_OverridesConvention()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<ConventionContext>(reg => reg
+                .Map(m => m
+                    .ByConvention()
+                    .Property(c => c.TenantId, "X-Tenant-Id").Optional()));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<ConventionContext>>();
+
+        var extracted = propagator.Extract(new Dictionary<string, string>(), static (c, k) => c.TryGetValue(k, out var v) ? v : null);
+        Assert.Null(extracted);
+    }
+
     private sealed class TestContext
     {
         public string? TraceId { get; set; }
@@ -214,5 +370,11 @@ public sealed class MappingDslTests
     private sealed class IntContext
     {
         public int Count { get; set; }
+    }
+
+    private sealed class ConventionContext
+    {
+        public required string TenantId { get; set; }
+        public string? UserId { get; set; }
     }
 }

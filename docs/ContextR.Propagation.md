@@ -50,6 +50,46 @@ ctx.Add<CorrelationContext>(reg => reg
 - `DefaultOversizeBehavior(...)` sets context-level oversize strategy default for DSL mappings.
 - `OversizeBehavior(...)` on a property overrides the context-level default for that property.
 
+### Nullability conventions (default)
+
+By default, mapping infers requirement level from C# nullability:
+
+- non-nullable property => required
+- nullable property => optional
+
+```csharp
+ctx.Add<CorrelationContext>(reg => reg
+    .Map(m => m
+        .ByConvention()
+        .Property(c => c.TraceId, "X-Trace-Id")
+        .Property(c => c.SpanId, "X-Span-Id")));
+```
+
+If you prefer explicit per-property convention:
+
+```csharp
+ctx.Add<CorrelationContext>(reg => reg
+    .Map(m => m
+        .Property(c => c.TraceId, "X-Trace-Id").ByConvention()
+        .Property(c => c.SpanId, "X-Span-Id").ByConvention()));
+```
+
+Explicit calls still win:
+
+```csharp
+.Property(c => c.SpanId, "X-Span-Id").Optional()
+```
+
+Disable conventions for fully manual requirement control:
+
+```csharp
+ctx.Add<CorrelationContext>(reg => reg
+    .DisableNullabilityConventions()
+    .Map(m => m
+        .Property(c => c.TraceId, "X-Trace-Id").Required()
+        .Property(c => c.SpanId, "X-Span-Id").Optional()));
+```
+
 ### Runtime oversize strategy policy
 
 When you need runtime decisions (per key, direction, domain, payload size), register a strategy policy:

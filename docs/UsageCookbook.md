@@ -14,6 +14,40 @@ ctx.Add<UserContext>(reg => reg
         .Property(c => c.UserId, "X-User-Id").Optional()));
 ```
 
+## Pattern: infer required/optional from nullability
+
+```csharp
+ctx.Add<UserContext>(reg => reg
+    .Map(m => m
+        .ByConvention()
+        .Property(c => c.TraceId, "X-Trace-Id")
+        .Property(c => c.TenantId, "X-Tenant-Id")
+        .Property(c => c.UserId, "X-User-Id")));
+```
+
+Or explicit per-property:
+
+```csharp
+ctx.Add<UserContext>(reg => reg
+    .Map(m => m
+        .Property(c => c.TraceId, "X-Trace-Id").ByConvention()
+        .Property(c => c.TenantId, "X-Tenant-Id").ByConvention()
+        .Property(c => c.UserId, "X-User-Id").ByConvention()));
+```
+
+Explicit `Required()` / `Optional()` always override conventions.
+
+Use fully manual mode when needed:
+
+```csharp
+ctx.Add<UserContext>(reg => reg
+    .DisableNullabilityConventions()
+    .Map(m => m
+        .Property(c => c.TraceId, "X-Trace-Id").Required()
+        .Property(c => c.TenantId, "X-Tenant-Id").Required()
+        .Property(c => c.UserId, "X-User-Id").Optional()));
+```
+
 ## Pattern: non-primitive property mapping
 
 For `List<T>`, arrays, or custom classes:

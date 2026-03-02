@@ -16,8 +16,8 @@ Every call must preserve tenant identity, correlation IDs, and user metadata acr
 ```csharp
 public sealed class UserContext
 {
-    public string? TenantId { get; set; }
-    public string? TraceId { get; set; }
+    public required string TenantId { get; set; }
+    public required string TraceId { get; set; }
     public string? UserId { get; set; }
 }
 ```
@@ -29,8 +29,9 @@ builder.Services.AddContextR(ctx =>
 {
     ctx.Add<UserContext>(reg => reg
         .Map(m => m
-            .Property(c => c.TenantId, "X-Tenant-Id").Required()
-            .Property(c => c.TraceId, "X-Trace-Id").Required()
+            .ByConvention()
+            .Property(c => c.TenantId, "X-Tenant-Id")
+            .Property(c => c.TraceId, "X-Trace-Id")
             .Property(c => c.UserId, "X-User-Id").Optional())
         .UseAspNetCore()
         .UseGlobalHttpPropagation());

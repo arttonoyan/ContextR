@@ -21,6 +21,11 @@ public enum PropertyRequirement
     Required = 1
 }
 
+internal interface IMapPendingProperty
+{
+    void FinalizeWithDefault();
+}
+
 /// <summary>
 /// Fluent builder for advanced map configuration.
 /// </summary>
@@ -30,6 +35,8 @@ public sealed class ContextMapBuilder<TContext>
 {
     private readonly IContextRegistrationBuilder<TContext> _registrationBuilder;
     private ContextOversizeBehavior? _defaultOversizeBehavior;
+    private bool _applyConventionByDefault;
+    private IMapPendingProperty? _pendingProperty;
 
     internal ContextMapBuilder(IContextRegistrationBuilder<TContext> registrationBuilder)
     {
@@ -46,7 +53,15 @@ public sealed class ContextMapBuilder<TContext>
         ArgumentNullException.ThrowIfNull(property);
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
-        return new ContextMapPropertyBuilder<TContext, TProperty>(this, property, key);
+        _pendingProperty?.FinalizeWithDefault();
+
+        var created = new ContextMapPropertyBuilder<TContext, TProperty>(
+            this,
+            property,
+            key,
+            _applyConventionByDefault);
+        _pendingProperty = created;
+        return created;
     }
 
     /// <summary>
@@ -58,12 +73,31 @@ public sealed class ContextMapBuilder<TContext>
         return this;
     }
 
+    /// <summary>
+    /// Applies nullability convention as the default requirement mode
+    /// for all properties configured after this call.
+    /// Explicit per-property <c>Required()</c>/<c>Optional()</c> still win.
+    /// </summary>
+    public ContextMapBuilder<TContext> ByConvention()
+    {
+        _applyConventionByDefault = true;
+        return this;
+    }
+
     internal ContextMapBuilder<TContext> AddProperty<TProperty>(
         Expression<Func<TContext, TProperty>> property,
         string key,
-        PropertyRequirement requirement,
+        PropertyRequirement? requirement,
         ContextOversizeBehavior? oversizeBehaviorOverride)
     {
+        var effectiveRequirement = requirement;
+        if (effectiveRequirement is null)
+        {
+            effectiveRequirement = NullabilityRequirementConventions.IsEnabled<TContext>(_registrationBuilder.Services)
+                ? NullabilityRequirementConventions.ResolveRequirement(property)
+                : PropertyRequirement.Optional;
+        }
+
         _registrationBuilder.Services.AddSingleton<IPropertyMapping<TContext>>(
             sp =>
             {
@@ -93,7 +127,7 @@ public sealed class ContextMapBuilder<TContext>
 
                         return policy.Select(policyContext);
                     },
-                    requirement,
+                    effectiveRequirement.Value,
                     oversizeBehaviorOverride ?? _defaultOversizeBehavior);
             });
 
@@ -107,6 +141,16 @@ public sealed class ContextMapBuilder<TContext>
 
         return this;
     }
+
+    internal void CompletePendingProperties()
+    {
+        _pendingProperty?.FinalizeWithDefault();
+    }
+
+    internal void ClearPending()
+    {
+        _pendingProperty = null;
+    }
 }
 
 /// <summary>
@@ -115,21 +159,25 @@ public sealed class ContextMapBuilder<TContext>
 /// <typeparam name="TContext">The context type being configured.</typeparam>
 /// <typeparam name="TProperty">The mapped property type.</typeparam>
 public sealed class ContextMapPropertyBuilder<TContext, TProperty>
+    : IMapPendingProperty
     where TContext : class
 {
     private readonly ContextMapBuilder<TContext> _parent;
     private readonly Expression<Func<TContext, TProperty>> _property;
     private readonly string _key;
+    private readonly bool _applyConventionByDefault;
     private ContextOversizeBehavior? _oversizeBehaviorOverride;
 
     internal ContextMapPropertyBuilder(
         ContextMapBuilder<TContext> parent,
         Expression<Func<TContext, TProperty>> property,
-        string key)
+        string key,
+        bool applyConventionByDefault)
     {
         _parent = parent;
         _property = property;
         _key = key;
+        _applyConventionByDefault = applyConventionByDefault;
     }
 
     /// <summary>
@@ -137,7 +185,9 @@ public sealed class ContextMapPropertyBuilder<TContext, TProperty>
     /// </summary>
     public ContextMapBuilder<TContext> Required()
     {
-        return _parent.AddProperty(_property, _key, PropertyRequirement.Required, _oversizeBehaviorOverride);
+        var result = _parent.AddProperty(_property, _key, PropertyRequirement.Required, _oversizeBehaviorOverride);
+        _parent.ClearPending();
+        return result;
     }
 
     /// <summary>
@@ -145,7 +195,32 @@ public sealed class ContextMapPropertyBuilder<TContext, TProperty>
     /// </summary>
     public ContextMapBuilder<TContext> Optional()
     {
-        return _parent.AddProperty(_property, _key, PropertyRequirement.Optional, _oversizeBehaviorOverride);
+        var result = _parent.AddProperty(_property, _key, PropertyRequirement.Optional, _oversizeBehaviorOverride);
+        _parent.ClearPending();
+        return result;
+    }
+
+    /// <summary>
+    /// Applies requirement by nullability convention (non-nullable => required, nullable => optional).
+    /// Conventions are enabled by default and can be disabled via <c>DisableNullabilityConventions()</c>.
+    /// </summary>
+    public ContextMapBuilder<TContext> ByConvention()
+    {
+        var result = _parent.AddProperty(_property, _key, null, _oversizeBehaviorOverride);
+        _parent.ClearPending();
+        return result;
+    }
+
+    /// <summary>
+    /// Starts configuration for the next mapped property.
+    /// The current property is finalized using map-level defaults first.
+    /// </summary>
+    public ContextMapPropertyBuilder<TContext, TNextProperty> Property<TNextProperty>(
+        Expression<Func<TContext, TNextProperty>> property,
+        string key)
+    {
+        ((IMapPendingProperty)this).FinalizeWithDefault();
+        return _parent.Property(property, key);
     }
 
     /// <summary>
@@ -155,5 +230,15 @@ public sealed class ContextMapPropertyBuilder<TContext, TProperty>
     {
         _oversizeBehaviorOverride = behavior;
         return this;
+    }
+
+    void IMapPendingProperty.FinalizeWithDefault()
+    {
+        _parent.AddProperty(
+            _property,
+            _key,
+            _applyConventionByDefault ? null : PropertyRequirement.Optional,
+            _oversizeBehaviorOverride);
+        _parent.ClearPending();
     }
 }
