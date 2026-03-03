@@ -1,57 +1,67 @@
-# ContextR Docs
+# ContextR
 
-## Build once. Propagate everywhere.
+ContextR is a .NET infrastructure library for reliable context propagation in distributed systems.
 
-ContextR helps you carry operational context (tenant, user, correlation, request metadata) across ASP.NET Core ingress, `HttpClient`, gRPC, async workflows, and background jobs without leaking transport code into business logic.
+It provides a consistent model for carrying operational context (for example tenant, user, trace, and request metadata) across:
 
-[Get Started](GettingStarted.md){ .md-button .md-button--primary }
-[See Real Samples](samples/index.md){ .md-button }
+- ASP.NET Core ingress
+- outgoing `HttpClient` calls
+- gRPC client and server flows
+- asynchronous workflows
+- background jobs
 
----
+[Start with Getting Started](GettingStarted.md){ .md-button .md-button--primary }
+[Browse Architecture](ARCHITECTURE.md){ .md-button }
 
-## Why teams use ContextR
+## Problem ContextR Solves
 
-- transport-agnostic context propagation model
-- snapshot-first business usage for safer async flows
-- policy-driven handling for required fields and oversize payloads
-- first-hop resolution support for gateway/edge use cases
+In production systems, context handling often becomes fragmented across middleware, handlers, interceptors, and application services. Teams usually see:
 
-## Quick navigation
+- repeated transport-specific plumbing
+- inconsistent trust and precedence rules at service boundaries
+- fragile async behavior and hidden context loss
+- duplicated parsing and validation logic
 
-### Start here
+ContextR centralizes these responsibilities with explicit context contracts, transport integrations, and policy-driven propagation behavior.
 
-- [Why ContextR Was Born](WhyContextR.md)
-- [Getting Started](GettingStarted.md)
-- [Usage Cookbook](UsageCookbook.md)
-- [FAQ](FAQ.md)
+## Who ContextR Is For
 
-### Core architecture
+ContextR is designed for senior backend engineers and platform teams who maintain multi-service .NET systems and need deterministic context behavior across HTTP, gRPC, and async execution paths.
 
-- [Architecture](ARCHITECTURE.md)
-- [Context Resolution](ContextR.Resolution.md)
-- [Propagation Mapping](ContextR.Propagation.md)
+Typical adopters include teams building:
 
-### Transport guides
+- internal platform foundations
+- multi-tenant service meshes
+- API gateway plus downstream service topologies
+- mixed synchronous and background processing pipelines
 
-- [ASP.NET Core](ContextR.AspNetCore.md)
-- [HTTP Client](ContextR.Http.md)
-- [HTTP Client Handler Scope Deep Dive](HttpClientHandlerScopes.md)
-- [gRPC](ContextR.Grpc.md)
+## When To Use ContextR
 
-### Strategy packages
+Use ContextR when you need one or more of the following:
 
-- [Inline JSON](ContextR.Propagation.InlineJson.md)
-- [Chunking](ContextR.Propagation.Chunking.md)
-- [Token Contracts](ContextR.Propagation.Token.md)
+- typed context contracts shared across services
+- ingress extraction with consistent downstream propagation
+- clear separation between live ambient reads and stable business snapshots
+- domain-aware context isolation
+- policy control for missing, malformed, or oversize propagated values
 
-### Real-world samples
+## When Not To Use ContextR
 
-- [Samples Overview](samples/index.md)
-- [Multi-tenant SaaS](samples/MultiTenantSaaS.md)
-- [Mixed HTTP + gRPC microservices](samples/MicroservicesHttpGrpc.md)
-- [Background jobs](samples/BackgroundJobs.md)
-- [Gateway ingress resolution](samples/GatewayIngressResolution.md)
+ContextR is not a replacement for identity, authentication, or authorization systems.
 
-!!! tip "No logo yet?"
-    The docs theme already supports polished branding (colors, icon, dark mode).  
-    You can add a custom logo later without changing content structure.
+Do not use ContextR:
+
+- as a substitute for JWT, OAuth, or access control decisions
+- for large document transport where payload data should be in message bodies
+- when a single-process application can use direct method parameters without infrastructure overhead
+
+## Documentation Map
+
+- [Introduction](introduction/index.md) - adoption path, audience, and usage boundaries
+- [Core Concepts](core-concepts/index.md) - context model, lifecycle, and resolution
+- [Architecture](architecture/index.md) - internals, storage model, and design decisions
+- [Propagation](propagation/index.md) - mapping, payload strategies, and failure policy
+- [Transports](transports/index.md) - ASP.NET Core, HTTP client, and gRPC integration
+- [Advanced](advanced/index.md) - cookbook patterns, background workflows, and FAQ
+- [Samples](samples/index.md) - complete production-oriented scenarios
+- [API Reference](api-reference/index.md) - package-level reference pages
