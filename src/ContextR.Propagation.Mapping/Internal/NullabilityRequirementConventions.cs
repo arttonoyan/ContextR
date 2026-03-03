@@ -14,6 +14,7 @@ internal sealed class NullabilityConventionOptions<TContext>
 internal static class NullabilityRequirementConventions
 {
     private static readonly NullabilityInfoContext NullabilityContext = new();
+    private static readonly object NullabilityContextLock = new();
 
     internal static NullabilityConventionOptions<TContext> GetOrAddOptions<TContext>(IServiceCollection services)
         where TContext : class
@@ -65,7 +66,12 @@ internal static class NullabilityRequirementConventions
                 ? PropertyRequirement.Required
                 : PropertyRequirement.Optional;
 
-        var nullability = NullabilityContext.Create(propertyInfo).ReadState;
+        NullabilityState nullability;
+        lock (NullabilityContextLock)
+        {
+            nullability = NullabilityContext.Create(propertyInfo).ReadState;
+        }
+
         return nullability == NullabilityState.NotNull
             ? PropertyRequirement.Required
             : PropertyRequirement.Optional;
