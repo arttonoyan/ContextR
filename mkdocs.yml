@@ -99,6 +99,12 @@ nav:
       - Hosting ASP.NET Core: packages/hosting-aspnet-core.md
       - Transport HTTP: packages/transport-http.md
       - Transport gRPC: packages/transport-grpc.md
+      - Package Details:
+          - Resolution Details: ContextR.Resolution.md
+          - Propagation Base Details: ContextR.Propagation.md
+          - Inline JSON Details: ContextR.Propagation.InlineJson.md
+          - Chunking Details: ContextR.Propagation.Chunking.md
+          - Token Details: ContextR.Propagation.Token.md
   - Samples:
       - Samples Overview: samples/index.md
       - Multi-tenant SaaS: samples/MultiTenantSaaS.md
