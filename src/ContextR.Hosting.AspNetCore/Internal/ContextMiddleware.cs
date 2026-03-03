@@ -58,6 +58,14 @@ internal sealed class ContextMiddleware<TContext> where TContext : class
             context = TryFallback(enforcement, httpContext, logger, out var fallbackException);
             if (context is null)
             {
+                // Preserve legacy behavior by default: extraction failures bubble up unless
+                // enforcement mode/callback is explicitly configured by the consumer.
+                if (enforcement.Mode == ContextIngressEnforcementMode.Disabled &&
+                    enforcement.OnFailure is null)
+                {
+                    throw fallbackException ?? extractionException;
+                }
+
                 var failureReason = fallbackException is null
                     ? ContextIngressFailureReason.ExtractionFailed
                     : ContextIngressFailureReason.FallbackFailed;
