@@ -28,4 +28,40 @@ jobs:
         run: dotnet build ContextR.slnx --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test ContextR.slnx --configuration Release --no-build
+        run: dotnet test ContextR.slnx --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory ./.coverage/testresults
+
+      - name: Install ReportGenerator
+        shell: bash
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Generate coverage report
+        run: |
+          reportgenerator \
+            -reports:"./.coverage/testresults/**/coverage.cobertura.xml" \
+            -targetdir:"./.coverage/report" \
+            -reporttypes:"HtmlInline_AzurePipelines;Cobertura;MarkdownSummaryGithub"
+
+      - name: Add coverage summary to job
+        shell: bash
+        run: |
+          if [ -f "./.coverage/report/SummaryGithub.md" ]; then
+            cat "./.coverage/report/SummaryGithub.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Coverage summary not found." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ./.coverage/report
+          if-no-files-found: error
+
+      - name: Upload raw test results artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./.coverage/testresults
+          if-no-files-found: error
