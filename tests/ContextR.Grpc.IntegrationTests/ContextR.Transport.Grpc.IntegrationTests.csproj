@@ -1,25 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
+
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.AspNetCore.Server" />
     <PackageReference Include="Grpc.Net.Client" />
     <PackageReference Include="Grpc.Net.ClientFactory" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
-  </ItemGroup>
-  <ItemGroup>
     <Protobuf Include="Protos\probe.proto" GrpcServices="Server,Client" />
   </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
@@ -32,14 +28,17 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\ContextR\ContextR.csproj" />
     <ProjectReference Include="..\..\src\ContextR.Propagation.Mapping\ContextR.Propagation.Mapping.csproj" />
     <ProjectReference Include="..\..\src\ContextR.Transport.Grpc\ContextR.Transport.Grpc.csproj" />
   </ItemGroup>
+
   <ItemGroup>
     <Using Include="Xunit" />
     <Using Include="ContextR.Propagation.Mapping" />
     <Using Include="ContextR.Transport.Grpc" />
   </ItemGroup>
+
 </Project>
