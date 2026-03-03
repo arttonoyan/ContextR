@@ -2,6 +2,8 @@
 
 Start here for practical guidance, then go deeper into package-specific details.
 
+If you publish with GitHub Pages + MkDocs, use [Docs Home](index.md) as the site entry page.
+
 ## Start
 
 - [Why ContextR Was Born](WhyContextR.md)
@@ -30,4 +32,4 @@ Start here for practical guidance, then go deeper into package-specific details.
 
 ## Samples
 
-- [Samples Overview](../samples/README.md)
+- [Samples Overview](samples/index.md)

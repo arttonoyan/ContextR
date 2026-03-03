@@ -1,0 +1,22 @@
+/* Subtle visual polish without custom logo */
+
+:root {
+  --contextr-hero-spacing: 0.8rem;
+}
+
+.md-content h2:first-of-type {
+  margin-top: 0.4rem;
+}
+
+.md-typeset .md-button {
+  border-radius: 0.6rem;
+  font-weight: 600;
+}
+
+.md-typeset hr {
+  margin: 1.6rem 0;
+}
+
+.md-typeset .admonition.tip {
+  border-radius: 0.7rem;
+}

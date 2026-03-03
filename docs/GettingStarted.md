@@ -108,7 +108,7 @@ Recommended first tests:
 - required property failure behavior matches policy
 - oversize behavior is deterministic
 
-For full examples, see [samples](../samples/README.md).
+For full examples, see [samples](samples/index.md).
 
 ## Optional: fail requests when required ingress context is missing
 

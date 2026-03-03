@@ -127,6 +127,26 @@ ContextR makes context flow reliable across async code, HTTP, gRPC, and backgrou
 - [HTTP Client Handler Scope Deep Dive](docs/HttpClientHandlerScopes.md)
 - [gRPC Transport](docs/ContextR.Grpc.md)
 
+## GitHub Pages Docs
+
+Once GitHub Pages is enabled for this repository, the site will be published at:
+
+- `https://arttonoyan.github.io/ContextR/`
+
+Local docs preview:
+
+```bash
+python -m pip install --upgrade pip
+pip install "mkdocs<2" "mkdocs-material<10" pymdown-extensions
+mkdocs serve
+```
+
+Production build check:
+
+```bash
+mkdocs build --strict
+```
+
 ## Samples
 
 Real-world examples are available under [`samples`](samples):

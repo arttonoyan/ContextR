@@ -8,7 +8,7 @@ This document explains the internal architecture of ContextR, the reasoning behi
 - [The problem: context loss](#the-problem-context-loss)
 - [The snapshot solution](#the-snapshot-solution)
 - [How BeginScope works internally](#how-beginscope-works-internally)
-- [Set vs SetRaw -- a critical distinction](#set-vs-setraw----a-critical-distinction)
+- [Set vs SetRaw -- a critical distinction](#set-vs-setraw-a-critical-distinction)
 - [Domain-scoped context](#domain-scoped-context)
 - [DI registration design](#di-registration-design)
 - [Component overview](#component-overview)

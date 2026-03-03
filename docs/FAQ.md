@@ -72,4 +72,4 @@ Yes:
 
 1. [Getting Started](GettingStarted.md)  
 2. [Usage Cookbook](UsageCookbook.md)  
-3. [Samples](../samples/README.md)
+3. [Samples](samples/index.md)

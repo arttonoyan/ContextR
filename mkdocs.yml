@@ -1,0 +1,98 @@
+site_name: ContextR Documentation
+site_description: Context propagation for distributed .NET systems.
+site_url: https://arttonoyan.github.io/ContextR/
+repo_url: https://github.com/arttonoyan/ContextR
+repo_name: arttonoyan/ContextR
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+site_dir: .build/docs-site
+use_directory_urls: true
+exclude_docs: README.md
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: cyan
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: cyan
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - navigation.instant
+    - navigation.tracking
+    - content.code.copy
+    - content.tabs.link
+    - search.suggest
+    - search.highlight
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      pygments_lang_class: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - https://unpkg.com/mermaid@10/dist/mermaid.min.js
+  - javascripts/mermaid-init.js
+
+nav:
+  - Home: index.md
+  - Why ContextR: WhyContextR.md
+  - Getting Started: GettingStarted.md
+  - Usage Cookbook: UsageCookbook.md
+  - FAQ: FAQ.md
+  - Architecture:
+      - Overview: ARCHITECTURE.md
+      - Resolution: ContextR.Resolution.md
+      - Propagation Mapping: ContextR.Propagation.md
+  - Strategy Packages:
+      - Inline JSON: ContextR.Propagation.InlineJson.md
+      - Chunking: ContextR.Propagation.Chunking.md
+      - Token Contracts: ContextR.Propagation.Token.md
+  - Transport Packages:
+      - ASP.NET Core: ContextR.AspNetCore.md
+      - HTTP Client: ContextR.Http.md
+      - HTTP Client Handler Scopes: HttpClientHandlerScopes.md
+      - gRPC: ContextR.Grpc.md
+  - Samples:
+      - Samples Overview: samples/index.md
+      - Multi-tenant SaaS: samples/MultiTenantSaaS.md
+      - Mixed HTTP + gRPC: samples/MicroservicesHttpGrpc.md
+      - Background Jobs: samples/BackgroundJobs.md
+      - Gateway Ingress Resolution: samples/GatewayIngressResolution.md
+      - Replace IHttpContextAccessor: samples/HttpContextAccessorReplacement.md
+      - JWT Adjunct Context: samples/JwtAdjunctContext.md

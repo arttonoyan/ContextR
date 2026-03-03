@@ -115,7 +115,7 @@ var result = orchestrator.ResolveAndWrite(
 
 For a production-style gateway flow (JWT claims -> `UserContext` -> downstream propagation), see:
 
-- [GatewayIngressResolution sample](../samples/GatewayIngressResolution/README.md)
+- [GatewayIngressResolution sample](samples/GatewayIngressResolution.md)
 
 ## Package boundaries
 
