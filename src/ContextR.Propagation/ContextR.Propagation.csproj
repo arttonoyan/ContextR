@@ -3,6 +3,7 @@
     <AssemblyName>ContextR.Propagation</AssemblyName>
     <RootNamespace>ContextR.Propagation</RootNamespace>
     <PackageId>ContextR.Propagation</PackageId>
+    <Description>Propagation contracts, registration extensions, failure hooks, and strategy policies for ContextR transport integrations.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\ContextR\ContextR.csproj" />

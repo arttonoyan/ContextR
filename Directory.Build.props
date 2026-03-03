@@ -31,4 +31,21 @@
     <DebugType>embedded</DebugType>
     <Optimize>true</Optimize>
   </PropertyGroup>
+
+  <!-- NuGet package metadata -->
+  <PropertyGroup Condition="'$(IsPackable)' != 'false'">
+    <Authors>Artyom Tonoyan</Authors>
+    <PackageProjectUrl>https://arttonoyan.github.io/ContextR/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/arttonoyan/ContextR</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageTags>context propagation;asynclocal;aspnetcore;httpclient;grpc;distributed systems</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
 </Project>

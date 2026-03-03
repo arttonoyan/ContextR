@@ -3,6 +3,7 @@
     <AssemblyName>ContextR.Propagation.Chunking</AssemblyName>
     <RootNamespace>ContextR.Propagation.Chunking</RootNamespace>
     <PackageId>ContextR.Propagation.Chunking</PackageId>
+    <Description>Chunking strategy for ContextR oversized payloads with UTF-8-safe split and reassembly support.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\ContextR\ContextR.csproj" />

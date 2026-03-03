@@ -3,6 +3,7 @@
     <AssemblyName>ContextR.Propagation.Token</AssemblyName>
     <RootNamespace>ContextR.Propagation.Token</RootNamespace>
     <PackageId>ContextR.Propagation.Token</PackageId>
+    <Description>Token/reference payload contracts for ContextR out-of-band propagation stores (for example Redis or database-backed providers).</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\ContextR.Propagation\ContextR.Propagation.csproj" />

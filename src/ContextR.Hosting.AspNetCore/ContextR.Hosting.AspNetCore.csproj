@@ -3,6 +3,7 @@
     <AssemblyName>ContextR.Hosting.AspNetCore</AssemblyName>
     <RootNamespace>ContextR.Hosting.AspNetCore</RootNamespace>
     <PackageId>ContextR.Hosting.AspNetCore</PackageId>
+    <Description>ASP.NET Core ingress middleware integration for ContextR, including extraction, domain support, and enforcement options.</Description>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

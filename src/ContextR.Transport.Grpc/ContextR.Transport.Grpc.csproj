@@ -3,6 +3,7 @@
     <AssemblyName>ContextR.Transport.Grpc</AssemblyName>
     <RootNamespace>ContextR.Transport.Grpc</RootNamespace>
     <PackageId>ContextR.Transport.Grpc</PackageId>
+    <Description>gRPC client and server interceptors for ContextR context propagation and extraction across service boundaries.</Description>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Grpc.Core.Api" />

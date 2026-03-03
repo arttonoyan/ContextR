@@ -3,6 +3,7 @@
     <AssemblyName>ContextR.Transport.Http</AssemblyName>
     <RootNamespace>ContextR.Transport.Http</RootNamespace>
     <PackageId>ContextR.Transport.Http</PackageId>
+    <Description>HttpClient propagation handler and registration extensions for injecting ContextR context into outgoing HTTP requests.</Description>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" />

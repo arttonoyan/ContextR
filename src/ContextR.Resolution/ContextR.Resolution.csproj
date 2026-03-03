@@ -3,6 +3,7 @@
     <AssemblyName>ContextR.Resolution</AssemblyName>
     <RootNamespace>ContextR.Resolution</RootNamespace>
     <PackageId>ContextR.Resolution</PackageId>
+    <Description>Ingress context resolution abstractions and orchestration for first-hop context creation from JWT, host, path, and request sources.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\ContextR\ContextR.csproj" />

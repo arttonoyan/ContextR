@@ -3,6 +3,7 @@
     <AssemblyName>ContextR.Propagation.Mapping</AssemblyName>
     <RootNamespace>ContextR.Propagation.Mapping</RootNamespace>
     <PackageId>ContextR.Propagation.Mapping</PackageId>
+    <Description>Fluent property mapping DSL and default mapping-based propagator for serializing typed context to transport carriers.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\ContextR\ContextR.csproj" />
