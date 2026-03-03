@@ -219,9 +219,7 @@ public sealed class PropertyMappingValidationTests
 
     public class FieldContext
     {
-#pragma warning disable CS0649
-        public string FieldValue;
-#pragma warning restore CS0649
+        public string FieldValue = null!;
     }
 
     public class ReadOnlyContext
