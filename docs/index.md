@@ -10,8 +10,8 @@ It provides a consistent model for carrying operational context (for example ten
 - asynchronous workflows
 - background jobs
 
-[Start with Getting Started](GettingStarted.md){ .md-button .md-button--primary }
-[Browse Architecture](ARCHITECTURE.md){ .md-button }
+[Get Started](getting-started/index.md){ .md-button .md-button--primary }
+[Packages Compass](packages/index.md){ .md-button }
 
 ## Problem ContextR Solves
 
@@ -35,6 +35,14 @@ Typical adopters include teams building:
 - API gateway plus downstream service topologies
 - mixed synchronous and background processing pipelines
 
+## Key Capabilities
+
+- snapshot-first access model for safer async and background flows
+- transport-agnostic propagation model with explicit mapping contracts
+- ingress resolution support for gateway and edge boundaries
+- policy-driven handling for required fields and oversize payloads
+- domain-aware isolation for multi-boundary service topologies
+
 ## When To Use ContextR
 
 Use ContextR when you need one or more of the following:
@@ -55,13 +63,10 @@ Do not use ContextR:
 - for large document transport where payload data should be in message bodies
 - when a single-process application can use direct method parameters without infrastructure overhead
 
-## Documentation Map
+## Quick Start Paths
 
-- [Introduction](introduction/index.md) - adoption path, audience, and usage boundaries
-- [Core Concepts](core-concepts/index.md) - context model, lifecycle, and resolution
-- [Architecture](architecture/index.md) - internals, storage model, and design decisions
-- [Propagation](propagation/index.md) - mapping, payload strategies, and failure policy
-- [Transports](transports/index.md) - ASP.NET Core, HTTP client, and gRPC integration
-- [Advanced](advanced/index.md) - cookbook patterns, background workflows, and FAQ
-- [Samples](samples/index.md) - complete production-oriented scenarios
-- [API Reference](api-reference/index.md) - package-level reference pages
+- [Getting Started](getting-started/index.md) for first implementation
+- [Concepts](concepts/index.md) for the ContextR mental model
+- [Integration](integration/index.md) for transport-specific setup
+- [Packages](packages/index.md) for ecosystem selection and dependency guidance
+- [Samples](samples/index.md) for production-style reference scenarios

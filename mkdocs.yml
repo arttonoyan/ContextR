@@ -71,34 +71,34 @@ extra_javascript:
 
 nav:
   - Home: index.md
-  - Introduction:
-      - Overview: introduction/index.md
-      - Why ContextR Was Born: WhyContextR.md
-      - Getting Started: GettingStarted.md
-      - When To Use ContextR: introduction/when-to-use.md
-  - Core Concepts:
-      - Overview: core-concepts/index.md
+  - Getting Started:
+      - Overview: getting-started/index.md
+      - Quickstart: GettingStarted.md
+      - Why ContextR: WhyContextR.md
+  - Concepts:
+      - Overview: concepts/index.md
       - Context Lifecycle: core-concepts/context-lifecycle.md
-      - Context Resolution: ContextR.Resolution.md
-  - Architecture:
-      - Overview: architecture/index.md
-      - Internal Design: ARCHITECTURE.md
-  - Propagation:
-      - Overview: propagation/index.md
-      - Mapping and Contracts: ContextR.Propagation.md
-      - Inline JSON Strategy: ContextR.Propagation.InlineJson.md
-      - Chunking Strategy: ContextR.Propagation.Chunking.md
-      - Token Contracts: ContextR.Propagation.Token.md
-  - Transports:
-      - Overview: transports/index.md
+      - Architecture: ARCHITECTURE.md
+      - Resolution Model: ContextR.Resolution.md
+  - Integration:
+      - Overview: integration/index.md
       - ASP.NET Core Ingress: ContextR.AspNetCore.md
       - HTTP Client Egress: ContextR.Http.md
       - gRPC: ContextR.Grpc.md
-      - HTTP Handler Scope Deep Dive: HttpClientHandlerScopes.md
-  - Advanced:
-      - Overview: advanced/index.md
-      - Usage Cookbook: UsageCookbook.md
-      - FAQ: FAQ.md
+      - Async and Background Work: UsageCookbook.md
+      - HTTP Handler Scopes: HttpClientHandlerScopes.md
+  - Packages:
+      - Overview: packages/index.md
+      - Core: packages/core.md
+      - Resolution: packages/resolution.md
+      - Propagation Base: packages/propagation.md
+      - Propagation Mapping: packages/propagation-mapping.md
+      - Propagation Inline JSON: packages/propagation-inline-json.md
+      - Propagation Chunking: packages/propagation-chunking.md
+      - Propagation Token: packages/propagation-token.md
+      - Hosting ASP.NET Core: packages/hosting-aspnet-core.md
+      - Transport HTTP: packages/transport-http.md
+      - Transport gRPC: packages/transport-grpc.md
   - Samples:
       - Samples Overview: samples/index.md
       - Multi-tenant SaaS: samples/MultiTenantSaaS.md
@@ -107,14 +107,3 @@ nav:
       - Gateway Ingress Resolution: samples/GatewayIngressResolution.md
       - Replace IHttpContextAccessor: samples/HttpContextAccessorReplacement.md
       - JWT Adjunct Context: samples/JwtAdjunctContext.md
-  - API Reference:
-      - Overview: api-reference/index.md
-      - Core Architecture: ARCHITECTURE.md
-      - Resolution Package: ContextR.Resolution.md
-      - Propagation Mapping Package: ContextR.Propagation.md
-      - Inline JSON Package: ContextR.Propagation.InlineJson.md
-      - Chunking Package: ContextR.Propagation.Chunking.md
-      - Token Package: ContextR.Propagation.Token.md
-      - ASP.NET Core Transport Package: ContextR.AspNetCore.md
-      - HTTP Transport Package: ContextR.Http.md
-      - gRPC Transport Package: ContextR.Grpc.md
