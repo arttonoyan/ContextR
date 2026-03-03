@@ -1,5 +1,13 @@
 # ContextR
 
+[![CI](https://github.com/arttonoyan/ContextR/actions/workflows/ci.yml/badge.svg)](https://github.com/arttonoyan/ContextR/actions/workflows/ci.yml)
+[![Docs](https://github.com/arttonoyan/ContextR/actions/workflows/docs-pages.yml/badge.svg)](https://github.com/arttonoyan/ContextR/actions/workflows/docs-pages.yml)
+[![NuGet Publish](https://github.com/arttonoyan/ContextR/actions/workflows/nuget-publish.yml/badge.svg)](https://github.com/arttonoyan/ContextR/actions/workflows/nuget-publish.yml)
+[![NuGet Version](https://img.shields.io/nuget/v/ContextR?label=nuget)](https://www.nuget.org/packages/ContextR)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/ContextR?label=downloads)](https://www.nuget.org/packages/ContextR)
+[![License: Apache-2.0](https://img.shields.io/github/license/arttonoyan/ContextR)](LICENSE)
+[![Docs Site](https://img.shields.io/website?url=https%3A%2F%2Farttonoyan.github.io%2FContextR%2F&label=docs%20site)](https://arttonoyan.github.io/ContextR/)
+
 Context propagation for distributed .NET systems without brittle glue code.
 
 ContextR helps you move request, tenant, user, and operational metadata across async boundaries, HTTP, and gRPC in a consistent and testable way.
