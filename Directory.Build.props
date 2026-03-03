@@ -42,5 +42,13 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageTags>context propagation;asynclocal;aspnetcore;httpclient;grpc;distributed systems</PackageTags>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)assets\branding\contextr-logo.png"
+          Pack="true"
+          PackagePath="icon.png"
+          Visible="false" />
+  </ItemGroup>
 </Project>

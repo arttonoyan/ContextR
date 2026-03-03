@@ -12,6 +12,8 @@ exclude_docs: README.md
 
 theme:
   name: material
+  logo: assets/branding/logo.png
+  favicon: assets/branding/favicon.png
   icon:
     repo: fontawesome/brands/github
   palette:
@@ -54,7 +56,7 @@ markdown_extensions:
       custom_fences:
         - name: mermaid
           class: mermaid
-          format: !!python/name:pymdownx.superfences.fence_code_format
+          format: pymdownx.superfences.fence_code_format
   - pymdownx.inlinehilite
   - pymdownx.tabbed:
       alternate_style: true
