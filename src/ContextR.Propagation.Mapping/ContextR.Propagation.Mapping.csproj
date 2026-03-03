@@ -4,7 +4,11 @@
     <RootNamespace>ContextR.Propagation.Mapping</RootNamespace>
     <PackageId>ContextR.Propagation.Mapping</PackageId>
     <Description>Fluent property mapping DSL and default mapping-based propagator for serializing typed context to transport carriers.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ContextR\ContextR.csproj" />
     <ProjectReference Include="..\ContextR.Propagation\ContextR.Propagation.csproj" />

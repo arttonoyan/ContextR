@@ -4,7 +4,11 @@
     <RootNamespace>ContextR.Propagation.Chunking</RootNamespace>
     <PackageId>ContextR.Propagation.Chunking</PackageId>
     <Description>Chunking strategy for ContextR oversized payloads with UTF-8-safe split and reassembly support.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ContextR\ContextR.csproj" />
     <ProjectReference Include="..\ContextR.Propagation\ContextR.Propagation.csproj" />

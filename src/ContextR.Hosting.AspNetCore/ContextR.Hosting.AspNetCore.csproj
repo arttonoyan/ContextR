@@ -4,7 +4,11 @@
     <RootNamespace>ContextR.Hosting.AspNetCore</RootNamespace>
     <PackageId>ContextR.Hosting.AspNetCore</PackageId>
     <Description>ASP.NET Core ingress middleware integration for ContextR, including extraction, domain support, and enforcement options.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>

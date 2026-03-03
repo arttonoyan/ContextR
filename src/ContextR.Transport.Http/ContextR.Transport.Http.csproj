@@ -4,7 +4,11 @@
     <RootNamespace>ContextR.Transport.Http</RootNamespace>
     <PackageId>ContextR.Transport.Http</PackageId>
     <Description>HttpClient propagation handler and registration extensions for injecting ContextR context into outgoing HTTP requests.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" />
   </ItemGroup>

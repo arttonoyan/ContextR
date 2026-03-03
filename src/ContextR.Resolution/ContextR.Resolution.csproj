@@ -4,7 +4,11 @@
     <RootNamespace>ContextR.Resolution</RootNamespace>
     <PackageId>ContextR.Resolution</PackageId>
     <Description>Ingress context resolution abstractions and orchestration for first-hop context creation from JWT, host, path, and request sources.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ContextR\ContextR.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
