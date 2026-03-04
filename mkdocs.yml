@@ -13,7 +13,7 @@ exclude_docs: README.md
 theme:
   name: material
   logo: assets/branding/logo.png
-  favicon: assets/branding/favicon.png
+  favicon: assets/branding/favicon.ico
   icon:
     repo: fontawesome/brands/github
   palette:
