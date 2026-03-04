@@ -343,6 +343,76 @@ public sealed class MappingDslTests
     }
 
     [Fact]
+    public void Map_Property_Throws_WhenExpressionIsNull()
+    {
+        var services = new ServiceCollection();
+        Assert.Throws<ArgumentNullException>(() =>
+            services.AddContextR(builder =>
+                builder.Add<ConventionContext>(reg => reg
+                    .Map(m => m.Property((System.Linq.Expressions.Expression<Func<ConventionContext, string>>)null!, "X-Tenant-Id")))));
+    }
+
+    [Fact]
+    public void Map_Property_Throws_WhenKeyIsWhitespace()
+    {
+        var services = new ServiceCollection();
+        Assert.Throws<ArgumentException>(() =>
+            services.AddContextR(builder =>
+                builder.Add<ConventionContext>(reg => reg
+                    .Map(m => m.Property(c => c.TenantId, "   ")))));
+    }
+
+    [Fact]
+    public void Map_PropertyToProperty_ImplicitlyFinalizesPreviousAsOptional()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<TestContext>(reg => reg
+                .Map(m => m
+                    .Property(c => c.TraceId, "X-Trace-Id")
+                    .Property(c => c.Payload, "X-Payload")
+                    .Required()));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<TestContext>>();
+
+        var extracted = propagator.Extract(
+            new Dictionary<string, string> { ["X-Payload"] = "required-only" },
+            static (c, k) => c.TryGetValue(k, out var v) ? v : null);
+
+        Assert.NotNull(extracted);
+        Assert.Null(extracted!.TraceId);
+        Assert.Equal("required-only", extracted.Payload);
+    }
+
+    [Fact]
+    public void Map_BuilderPropertyCalledTwice_FinalizesPendingBeforeSecondCall()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<TestContext>(reg => reg.Map(m =>
+            {
+                m.Property(c => c.TraceId, "X-Trace-Id");
+                m.Property(c => c.Payload, "X-Payload").Required();
+            }));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<TestContext>>();
+
+        var extracted = propagator.Extract(
+            new Dictionary<string, string> { ["X-Payload"] = "payload-only" },
+            static (c, k) => c.TryGetValue(k, out var v) ? v : null);
+
+        Assert.NotNull(extracted);
+        Assert.Null(extracted!.TraceId);
+        Assert.Equal("payload-only", extracted.Payload);
+    }
+
+    [Fact]
     public void Map_ByConvention_ExplicitOptional_OverridesConvention()
     {
         var services = new ServiceCollection();
@@ -361,6 +431,92 @@ public sealed class MappingDslTests
         Assert.Null(extracted);
     }
 
+    [Fact]
+    public void Map_DefaultOversizeBehavior_Applies_WhenPropertyHasNoOverride()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<OversizeContext>(reg => reg
+                .UseInlineJsonPayloads<OversizeContext>(o =>
+                {
+                    o.MaxPayloadBytes = 20;
+                    o.OversizeBehavior = ContextOversizeBehavior.FailFast;
+                })
+                .Map(m => m
+                    .DefaultOversizeBehavior(ContextOversizeBehavior.SkipProperty)
+                    .Property(c => c.Tags, "X-Tags")));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<OversizeContext>>();
+        var carrier = new Dictionary<string, string>();
+
+        propagator.Inject(
+            new OversizeContext { Tags = Enumerable.Repeat("long-value", 20).ToList() },
+            carrier,
+            static (c, k, v) => c[k] = v);
+
+        Assert.False(carrier.ContainsKey("X-Tags"));
+    }
+
+    [Fact]
+    public void Map_WithStrategyPolicy_InvokesPolicyEvaluatorContext()
+    {
+        CapturingSkipPolicy.LastContext = null;
+
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<OversizeContext>(reg => reg
+                .UseInlineJsonPayloads(o =>
+                {
+                    o.MaxPayloadBytes = 20;
+                    o.OversizeBehavior = ContextOversizeBehavior.FailFast;
+                })
+                .UseStrategyPolicy<OversizeContext, CapturingSkipPolicy>()
+                .Map(m => m.Property(c => c.Tags, "X-Tags").Optional()));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<OversizeContext>>();
+        var carrier = new Dictionary<string, string>();
+
+        propagator.Inject(
+            new OversizeContext { Tags = Enumerable.Repeat("long-value", 20).ToList() },
+            carrier,
+            static (c, k, v) => c[k] = v);
+
+        Assert.False(carrier.ContainsKey("X-Tags"));
+        Assert.NotNull(CapturingSkipPolicy.LastContext);
+        Assert.Equal(typeof(OversizeContext), CapturingSkipPolicy.LastContext!.ContextType);
+        Assert.Equal("X-Tags", CapturingSkipPolicy.LastContext.Key);
+        Assert.Equal(PropagationDirection.Inject, CapturingSkipPolicy.LastContext.Direction);
+    }
+
+    [Fact]
+    public void Map_ByConventionWithDisabledConventions_TreatsMissingNonNullableAsOptional()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<ConventionContext>(reg => reg
+                .DisableNullabilityConventions()
+                .Map(m => m
+                    .ByConvention()
+                    .Property(c => c.TenantId, "X-Tenant-Id")));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<ConventionContext>>();
+
+        var extracted = propagator.Extract(
+            new Dictionary<string, string>(),
+            static (c, k) => c.TryGetValue(k, out var v) ? v : null);
+
+        Assert.Null(extracted);
+    }
+
     private sealed class TestContext
     {
         public string? TraceId { get; set; }
@@ -376,5 +532,21 @@ public sealed class MappingDslTests
     {
         public required string TenantId { get; set; }
         public string? UserId { get; set; }
+    }
+
+    private sealed class OversizeContext
+    {
+        public List<string>? Tags { get; set; }
+    }
+
+    private sealed class CapturingSkipPolicy : IContextPropagationStrategyPolicy<OversizeContext>
+    {
+        public static ContextPropagationStrategyPolicyContext? LastContext { get; set; }
+
+        public ContextOversizeBehavior Select(ContextPropagationStrategyPolicyContext context)
+        {
+            LastContext = context;
+            return ContextOversizeBehavior.SkipProperty;
+        }
     }
 }

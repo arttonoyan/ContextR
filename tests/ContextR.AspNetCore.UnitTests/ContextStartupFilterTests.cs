@@ -157,6 +157,62 @@ public sealed class ContextStartupFilterTests
         Assert.True(nextCalled);
     }
 
+    [Fact]
+    public void OptionsRegistry_Resolve_ReturnsDomainSpecific_ThenDefault_ThenNewOptions()
+    {
+        var registry = new ContextRAspNetCoreOptionsRegistry<TestContext>();
+        registry.TryAdd(null, _ => new ContextRAspNetCoreOptions<TestContext>()
+            .Enforcement(e => e.Mode = ContextIngressEnforcementMode.ObserveOnly));
+        registry.TryAdd("orders", _ => new ContextRAspNetCoreOptions<TestContext>()
+            .Enforcement(e => e.Mode = ContextIngressEnforcementMode.FailRequest));
+
+        using var provider = new ServiceCollection().BuildServiceProvider();
+
+        var domain = registry.Resolve(provider, "orders");
+        var fallback = registry.Resolve(provider, "missing");
+
+        var emptyRegistry = new ContextRAspNetCoreOptionsRegistry<TestContext>();
+        var none = emptyRegistry.Resolve(provider, "missing");
+
+        Assert.Equal(ContextIngressEnforcementMode.FailRequest, domain.EnforcementOptions.Mode);
+        Assert.Equal(ContextIngressEnforcementMode.ObserveOnly, fallback.EnforcementOptions.Mode);
+        Assert.Equal(ContextIngressEnforcementMode.Disabled, none.EnforcementOptions.Mode);
+    }
+
+    [Fact]
+    public void OptionsRegistry_DefaultFactory_IsNotOverwritten()
+    {
+        var registry = new ContextRAspNetCoreOptionsRegistry<TestContext>();
+        registry.TryAdd(null, _ => new ContextRAspNetCoreOptions<TestContext>()
+            .Enforcement(e => e.Mode = ContextIngressEnforcementMode.ObserveOnly));
+        registry.TryAdd(null, _ => new ContextRAspNetCoreOptions<TestContext>()
+            .Enforcement(e => e.Mode = ContextIngressEnforcementMode.FailRequest));
+
+        using var provider = new ServiceCollection().BuildServiceProvider();
+        var resolved = registry.Resolve(provider, null);
+
+        Assert.Equal(ContextIngressEnforcementMode.ObserveOnly, resolved.EnforcementOptions.Mode);
+    }
+
+    [Fact]
+    public void UseAspNetCore_MultipleRegistrations_ReuseExistingOptionsRegistry()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(ctx => ctx.Add<TestContext>(reg => reg
+            .MapProperty(c => c.TenantId, "X-Tenant-Id")
+            .UseAspNetCore()));
+        services.AddContextR(ctx => ctx.Add<TestContext>(reg => reg
+            .MapProperty(c => c.UserId, "X-User-Id")
+            .UseAspNetCore(o => o.Enforcement(e => e.Mode = ContextIngressEnforcementMode.FailRequest))));
+
+        using var provider = services.BuildServiceProvider();
+        var registry = provider.GetRequiredService<ContextRAspNetCoreOptionsRegistry<TestContext>>();
+        var options = registry.Resolve(provider, null);
+
+        // Default registration keeps first factory due TryAdd semantics.
+        Assert.Equal(ContextIngressEnforcementMode.Disabled, options.EnforcementOptions.Mode);
+    }
+
     public class TestContext
     {
         public string? TenantId { get; set; }

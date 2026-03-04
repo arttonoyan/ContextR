@@ -82,6 +82,44 @@ public sealed class ResolutionRegistrationExtensionsTests
         Assert.Equal(ContextResolutionSource.Policy, result.Source);
     }
 
+    [Fact]
+    public void WrapperOverloads_TypedResolverAndPolicy_RegisterAndResolve()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<TestContext>(reg => reg
+                .UseResolver<TestContext, ConstantResolver>()
+                .UseResolutionPolicy<TestContext, PreferResolvedPolicy>());
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var orchestrator = provider.GetRequiredService<IContextResolutionOrchestrator<TestContext>>();
+        var result = orchestrator.Resolve(new ContextResolutionContext { Boundary = ContextIngressBoundary.External });
+
+        Assert.NotNull(result.Context);
+        Assert.Equal("typed-resolver", result.Context!.Value);
+    }
+
+    [Fact]
+    public void WrapperOverloads_DelegateAndFactory_RegisterAndResolve()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(builder =>
+        {
+            builder.Add<TestContext>(reg => reg
+                .UseResolver<TestContext>(_ => new TestContext("delegate-resolver"))
+                .UseResolutionPolicy<TestContext>(_ => new PreferResolvedPolicy()));
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var orchestrator = provider.GetRequiredService<IContextResolutionOrchestrator<TestContext>>();
+        var result = orchestrator.Resolve(new ContextResolutionContext { Boundary = ContextIngressBoundary.External });
+
+        Assert.NotNull(result.Context);
+        Assert.Equal("delegate-resolver", result.Context!.Value);
+    }
+
     private sealed record TestContext(string Value);
 
     private sealed class ConstantResolver : IContextResolver<TestContext>

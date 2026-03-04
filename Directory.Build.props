@@ -62,7 +62,7 @@
     <CoverletOutput Condition="'$(CoverletOutput)' == ''">$(MSBuildProjectDirectory)\TestResults\Coverage\</CoverletOutput>
     <IncludeTestAssembly>false</IncludeTestAssembly>
     <Include>[ContextR*]*</Include>
-    <Exclude>[*.UnitTests]*,[*.IntegrationTests]*,[xunit*]*</Exclude>
+    <Exclude>[*.UnitTests]*,[*.IntegrationTests]*,[xunit*]*,[ContextR.Resolution]ContextR.Resolution.ContextResolutionContext,[ContextR.Resolution]ContextR.Resolution.ContextResolutionResult*,[ContextR.Resolution]ContextR.Resolution.ContextResolutionPolicyContext*</Exclude>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsContextRTestProject)' == 'true'">

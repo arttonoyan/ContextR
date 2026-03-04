@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using ContextR.Hosting.AspNetCore.Internal;
 
 namespace ContextR.AspNetCore.UnitTests;
 
@@ -246,9 +247,120 @@ public sealed class ContextMiddlewareTests
         Assert.Equal("fallback-tenant", capturedContext.TenantId);
     }
 
+    [Fact]
+    public async Task Middleware_ExtractionThrows_DefaultMode_RethrowsExtractionException()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(ctx => ctx.Add<TestContext>());
+        using var provider = services.BuildServiceProvider();
+        var writer = provider.GetRequiredService<IContextWriter>();
+        var middleware = new ContextMiddleware<TestContext>(_ => Task.CompletedTask);
+        var httpContext = new DefaultHttpContext { RequestServices = provider };
+        var propagator = new ThrowingPropagator<TestContext>(new InvalidOperationException("extract failed"));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            middleware.InvokeAsync(httpContext, propagator, writer, provider));
+
+        Assert.Contains("extract failed", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Middleware_ExtractionThrows_FailRequestMode_Returns400AndSkipsNext()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(ctx => ctx.Add<TestContext>());
+        using var provider = services.BuildServiceProvider();
+        var writer = provider.GetRequiredService<IContextWriter>();
+        var middleware = new ContextMiddleware<TestContext>(_ => Task.CompletedTask);
+        var httpContext = new DefaultHttpContext { RequestServices = provider };
+        var propagator = new ThrowingPropagator<TestContext>(new InvalidOperationException("extract failed"));
+
+        var optionsRegistry = new ContextRAspNetCoreOptionsRegistry<TestContext>();
+        optionsRegistry.TryAdd(null, _ => new ContextRAspNetCoreOptions<TestContext>()
+            .Enforcement(e => e.Mode = ContextIngressEnforcementMode.FailRequest));
+
+        await middleware.InvokeAsync(httpContext, propagator, writer, provider, optionsRegistry);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Middleware_ExtractionThrows_OnFailureWriter_UsesCustomWriter()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(ctx => ctx.Add<TestContext>());
+        using var provider = services.BuildServiceProvider();
+        var writer = provider.GetRequiredService<IContextWriter>();
+        var middleware = new ContextMiddleware<TestContext>(_ => Task.CompletedTask);
+        var httpContext = new DefaultHttpContext { RequestServices = provider };
+        var propagator = new ThrowingPropagator<TestContext>(new InvalidOperationException("extract failed"));
+
+        var optionsRegistry = new ContextRAspNetCoreOptionsRegistry<TestContext>();
+        optionsRegistry.TryAdd(null, _ => new ContextRAspNetCoreOptions<TestContext>()
+            .Enforcement(e =>
+            {
+                e.OnFailure = _ => ContextIngressFailureDecision.FailWithWriter(ctx =>
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status418ImATeapot;
+                    return Task.CompletedTask;
+                });
+            }));
+
+        await middleware.InvokeAsync(httpContext, propagator, writer, provider, optionsRegistry);
+
+        Assert.Equal(StatusCodes.Status418ImATeapot, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Middleware_ExtractionThrows_AndFallbackThrows_ReportsFallbackFailedReason()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(ctx => ctx.Add<TestContext>());
+        using var provider = services.BuildServiceProvider();
+        var writer = provider.GetRequiredService<IContextWriter>();
+        var nextCalled = false;
+        var middleware = new ContextMiddleware<TestContext>(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+        var httpContext = new DefaultHttpContext { RequestServices = provider };
+        var propagator = new ThrowingPropagator<TestContext>(new InvalidOperationException("extract failed"));
+        ContextIngressFailureReason? capturedReason = null;
+
+        var optionsRegistry = new ContextRAspNetCoreOptionsRegistry<TestContext>();
+        optionsRegistry.TryAdd(null, _ => new ContextRAspNetCoreOptions<TestContext>()
+            .Enforcement(e =>
+            {
+                e.Mode = ContextIngressEnforcementMode.ObserveOnly;
+                e.FallbackContextFactory = _ => throw new InvalidOperationException("fallback failed");
+                e.OnFailure = ctx =>
+                {
+                    capturedReason = ctx.Reason;
+                    return ContextIngressFailureDecision.Continue();
+                };
+            }));
+
+        await middleware.InvokeAsync(httpContext, propagator, writer, provider, optionsRegistry);
+
+        Assert.True(nextCalled);
+        Assert.Equal(ContextIngressFailureReason.FallbackFailed, capturedReason);
+    }
+
     public class TestContext
     {
         public string? TenantId { get; set; }
         public string? UserId { get; set; }
+    }
+
+    private sealed class ThrowingPropagator<TContext>(Exception exception) : IContextPropagator<TContext>
+        where TContext : class
+    {
+        public void Inject<TCarrier>(TContext context, TCarrier carrier, Action<TCarrier, string, string> setter)
+        {
+        }
+
+        public TContext? Extract<TCarrier>(TCarrier carrier, Func<TCarrier, string, string?> getter)
+            => throw exception;
     }
 }

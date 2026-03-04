@@ -175,6 +175,32 @@ public sealed class PropertyMappingValidationTests
         Assert.Equal("X-Custom-Key", mapping.Key);
     }
 
+    [Fact]
+    public void GetValue_ReturnsEmpty_WhenToStringReturnsNull()
+    {
+        var mapping = PropertyMapping.Create<NullToStringContext, NullStringValue?>(c => c.Value, "X-Self");
+        var context = new NullToStringContext { Value = new NullStringValue() };
+
+        var values = mapping.GetValues(context);
+
+        Assert.Empty(values);
+    }
+
+    [Fact]
+    public void TrySetValue_CustomSerializer_NullParsedNullable_SetsNullAndReturnsTrue()
+    {
+        var mapping = PropertyMapping.Create<TestContext, string?>(
+            c => c.TenantId,
+            "X-Tenant-Id",
+            payloadSerializer: new NullParsedSerializer());
+
+        var context = new TestContext { TenantId = "seed" };
+        var ok = mapping.TrySetValue(context, "ignored");
+
+        Assert.True(ok);
+        Assert.Null(context.TenantId);
+    }
+
     public class TestContext
     {
         public string? TenantId { get; set; }
@@ -225,5 +251,26 @@ public sealed class PropertyMappingValidationTests
     public class ReadOnlyContext
     {
         public string ReadOnly { get; } = "fixed";
+    }
+
+    public class NullToStringContext
+    {
+        public NullStringValue? Value { get; set; }
+    }
+
+    public sealed class NullStringValue
+    {
+        public override string? ToString() => null;
+    }
+
+    private sealed class NullParsedSerializer : IContextPayloadSerializer<TestContext>
+    {
+        public bool CanHandle(Type propertyType) => propertyType == typeof(string);
+        public string Serialize(object value, Type propertyType) => value.ToString() ?? string.Empty;
+        public bool TryDeserialize(string payload, Type propertyType, out object? value)
+        {
+            value = null;
+            return true;
+        }
     }
 }

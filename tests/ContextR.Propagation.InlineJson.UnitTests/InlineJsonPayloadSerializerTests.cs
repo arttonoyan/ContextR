@@ -12,7 +12,10 @@ public sealed class InlineJsonPayloadSerializerTests
     [InlineData(typeof(Guid), false)]
     [InlineData(typeof(int?), false)]
     [InlineData(typeof(DateTime), false)]
+    [InlineData(typeof(DateTimeOffset), false)]
+    [InlineData(typeof(TimeSpan), false)]
     [InlineData(typeof(Status), false)]
+    [InlineData(typeof(CustomConvertible), false)]
     [InlineData(typeof(List<string>), true)]
     [InlineData(typeof(string[]), true)]
     [InlineData(typeof(UserPayload), true)]
@@ -90,5 +93,26 @@ public sealed class InlineJsonPayloadSerializerTests
     {
         Unknown = 0,
         Active = 1
+    }
+
+    private sealed class CustomConvertible : IConvertible
+    {
+        public TypeCode GetTypeCode() => TypeCode.Object;
+        public bool ToBoolean(IFormatProvider? provider) => false;
+        public byte ToByte(IFormatProvider? provider) => 0;
+        public char ToChar(IFormatProvider? provider) => '\0';
+        public DateTime ToDateTime(IFormatProvider? provider) => default;
+        public decimal ToDecimal(IFormatProvider? provider) => 0m;
+        public double ToDouble(IFormatProvider? provider) => 0d;
+        public short ToInt16(IFormatProvider? provider) => 0;
+        public int ToInt32(IFormatProvider? provider) => 0;
+        public long ToInt64(IFormatProvider? provider) => 0L;
+        public sbyte ToSByte(IFormatProvider? provider) => 0;
+        public float ToSingle(IFormatProvider? provider) => 0f;
+        public string ToString(IFormatProvider? provider) => string.Empty;
+        public object ToType(Type conversionType, IFormatProvider? provider) => string.Empty;
+        public ushort ToUInt16(IFormatProvider? provider) => 0;
+        public uint ToUInt32(IFormatProvider? provider) => 0U;
+        public ulong ToUInt64(IFormatProvider? provider) => 0UL;
     }
 }
