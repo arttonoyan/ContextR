@@ -51,4 +51,24 @@
           PackagePath="icon.png"
           Visible="false" />
   </ItemGroup>
+
+  <!-- Test and coverage defaults -->
+  <PropertyGroup>
+    <IsContextRTestProject Condition="'$(IsContextRTestProject)' == '' and $([System.String]::Copy('$(MSBuildProjectName)').Contains('Tests'))">true</IsContextRTestProject>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsContextRTestProject)' == 'true'">
+    <CoverletOutputFormat Condition="'$(CoverletOutputFormat)' == ''">cobertura</CoverletOutputFormat>
+    <CoverletOutput Condition="'$(CoverletOutput)' == ''">$(MSBuildProjectDirectory)\TestResults\Coverage\</CoverletOutput>
+    <IncludeTestAssembly>false</IncludeTestAssembly>
+    <Include>[ContextR*]*</Include>
+    <Exclude>[*.UnitTests]*,[*.IntegrationTests]*,[xunit*]*</Exclude>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsContextRTestProject)' == 'true'">
+    <PackageReference Include="coverlet.msbuild">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 </Project>

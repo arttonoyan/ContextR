@@ -122,6 +122,80 @@ public sealed class MappingContextPropagatorTests
         Assert.Throws<InvalidOperationException>(() => new MappingContextPropagator<NoDefaultCtorContext>(mappings));
     }
 
+    [Fact]
+    public void Inject_WhenMappingThrows_CanSkipProperty_AndContinue()
+    {
+        var registry = new ContextPropagationFailureHandlerRegistry<TestContext>();
+        registry.TryAdd(null, _ => new DelegateFailureHandler(_ => PropagationFailureAction.SkipProperty));
+
+        var propagator = new MappingContextPropagator<TestContext>(
+            [
+                new ThrowingMapping(throwOnInject: true, throwOnExtract: false),
+                PropertyMapping.Create<TestContext, string?>(c => c.TenantId, "X-Tenant-Id")
+            ],
+            failureRegistry: registry);
+
+        var carrier = new Dictionary<string, string>();
+        propagator.Inject(new TestContext { TenantId = "tenant-1" }, carrier, static (c, k, v) => c[k] = v);
+
+        Assert.Equal("tenant-1", carrier["X-Tenant-Id"]);
+    }
+
+    [Fact]
+    public void Inject_WhenMappingThrows_AndHandlerSkipsContext_StopsImmediately()
+    {
+        var registry = new ContextPropagationFailureHandlerRegistry<TestContext>();
+        registry.TryAdd(null, _ => new DelegateFailureHandler(_ => PropagationFailureAction.SkipContext));
+
+        var propagator = new MappingContextPropagator<TestContext>(
+            [
+                new ThrowingMapping(throwOnInject: true, throwOnExtract: false),
+                PropertyMapping.Create<TestContext, string?>(c => c.TenantId, "X-Tenant-Id")
+            ],
+            failureRegistry: registry);
+
+        var carrier = new Dictionary<string, string>();
+        propagator.Inject(new TestContext { TenantId = "tenant-1" }, carrier, static (c, k, v) => c[k] = v);
+
+        Assert.Empty(carrier);
+    }
+
+    [Fact]
+    public void Extract_WhenMappingThrows_CanSkipProperty_AndContinue()
+    {
+        var registry = new ContextPropagationFailureHandlerRegistry<TestContext>();
+        registry.TryAdd(null, _ => new DelegateFailureHandler(_ => PropagationFailureAction.SkipProperty));
+
+        var propagator = new MappingContextPropagator<TestContext>(
+            [
+                new ThrowingMapping(throwOnInject: false, throwOnExtract: true),
+                PropertyMapping.Create<TestContext, string?>(c => c.TenantId, "X-Tenant-Id")
+            ],
+            failureRegistry: registry);
+
+        var carrier = new Dictionary<string, string> { ["X-Tenant-Id"] = "tenant-2" };
+        var extracted = propagator.Extract(carrier, static (c, k) => c.TryGetValue(k, out var v) ? v : null);
+
+        Assert.NotNull(extracted);
+        Assert.Equal("tenant-2", extracted!.TenantId);
+    }
+
+    [Fact]
+    public void Extract_WhenMappingThrows_AndHandlerThrows_BubblesOriginalException()
+    {
+        var registry = new ContextPropagationFailureHandlerRegistry<TestContext>();
+        registry.TryAdd(null, _ => new DelegateFailureHandler(_ => PropagationFailureAction.Throw));
+
+        var propagator = new MappingContextPropagator<TestContext>(
+            [new ThrowingMapping(throwOnInject: false, throwOnExtract: true)],
+            failureRegistry: registry);
+
+        var ex = Assert.Throws<PropertyMappingException>(() =>
+            propagator.Extract(new Dictionary<string, string>(), static (c, k) => c.TryGetValue(k, out var v) ? v : null));
+
+        Assert.Equal(PropagationFailureReason.ParseFailed, ex.Reason);
+    }
+
     private static MappingContextPropagator<TestContext> BuildPropagator()
     {
         var mappings = new IPropertyMapping<TestContext>[]
@@ -152,5 +226,43 @@ public sealed class MappingContextPropagatorTests
     {
         public NoDefaultCtorContext(string value) => Value = value;
         public string Value { get; set; }
+    }
+
+    private sealed class ThrowingMapping(bool throwOnInject, bool throwOnExtract) : IPropertyMapping<TestContext>
+    {
+        public string Key => "X-Throw";
+        public bool IsRequired => false;
+
+        public IEnumerable<KeyValuePair<string, string>> GetValues(TestContext context)
+        {
+            if (throwOnInject)
+            {
+                throw new PropertyMappingException(
+                    PropagationFailureReason.ParseFailed,
+                    "Inject failure.");
+            }
+
+            return [];
+        }
+
+        public string? GetRawValue<TCarrier>(TCarrier carrier, Func<TCarrier, string, string?> getter) => "raw";
+
+        public bool TrySetValue(TestContext context, string value)
+        {
+            if (throwOnExtract)
+            {
+                throw new PropertyMappingException(
+                    PropagationFailureReason.ParseFailed,
+                    "Extract failure.");
+            }
+
+            return false;
+        }
+    }
+
+    private sealed class DelegateFailureHandler(Func<PropagationFailureContext, PropagationFailureAction> handler)
+        : IContextPropagationFailureHandler<TestContext>
+    {
+        public PropagationFailureAction Handle(PropagationFailureContext failure) => handler(failure);
     }
 }

@@ -10,6 +10,7 @@ public sealed class InlineJsonPayloadSerializerTests
     [InlineData(typeof(string), false)]
     [InlineData(typeof(int), false)]
     [InlineData(typeof(Guid), false)]
+    [InlineData(typeof(int?), false)]
     [InlineData(typeof(DateTime), false)]
     [InlineData(typeof(Status), false)]
     [InlineData(typeof(List<string>), true)]
@@ -51,6 +52,15 @@ public sealed class InlineJsonPayloadSerializerTests
     public void TryDeserialize_ReturnsFalse_ForInvalidJson()
     {
         var ok = _sut.TryDeserialize("{ this is invalid json", typeof(UserPayload), out var parsed);
+
+        Assert.False(ok);
+        Assert.Null(parsed);
+    }
+
+    [Fact]
+    public void TryDeserialize_ReturnsFalse_ForUnsupportedType()
+    {
+        var ok = _sut.TryDeserialize("{\"a\":1}", typeof(Stream), out var parsed);
 
         Assert.False(ok);
         Assert.Null(parsed);

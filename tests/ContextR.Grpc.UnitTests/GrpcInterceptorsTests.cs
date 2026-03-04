@@ -142,6 +142,151 @@ public sealed class GrpcInterceptorsTests
         Assert.Equal("domain-value", accessor.GetContext<TestContext>("orders")?.TenantId);
     }
 
+    [Fact]
+    public void BlockingUnaryCall_ClonesHeaders_AndPreservesBinaryEntries()
+    {
+        var services = BuildServices();
+        using var provider = services.BuildServiceProvider();
+        provider.GetRequiredService<IContextWriter>()
+            .SetContext(new TestContext { TenantId = "t1" });
+
+        var interceptor = new ContextPropagationInterceptor<TestContext>(
+            provider.GetRequiredService<IContextAccessor>(),
+            provider.GetRequiredService<IContextPropagator<TestContext>>());
+
+        var originalHeaders = new Metadata
+        {
+            { "existing", "value" },
+            { "existing-bin", new byte[] { 1, 2, 3 } }
+        };
+        var context = new ClientInterceptorContext<TestRequest, TestResponse>(
+            CreateMethod<TestRequest, TestResponse>(),
+            "localhost",
+            new CallOptions(headers: originalHeaders));
+
+        Metadata? capturedHeaders = null;
+        _ = interceptor.BlockingUnaryCall(
+            new TestRequest(),
+            context,
+            (request, nextContext) =>
+            {
+                capturedHeaders = nextContext.Options.Headers;
+                return new TestResponse();
+            });
+
+        Assert.NotNull(capturedHeaders);
+        Assert.NotSame(originalHeaders, capturedHeaders);
+        Assert.Equal("value", capturedHeaders!.GetValue("existing"));
+        Assert.Equal([1, 2, 3], capturedHeaders.First(e => e.Key == "existing-bin").ValueBytes);
+        Assert.Equal("t1", capturedHeaders.GetValue("x-tenant-id"));
+    }
+
+    [Fact]
+    public void AsyncServerStreamingCall_InjectsContextMetadata()
+    {
+        var services = BuildServices();
+        using var provider = services.BuildServiceProvider();
+        provider.GetRequiredService<IContextWriter>()
+            .SetContext(new TestContext { TenantId = "stream" });
+
+        var interceptor = new ContextPropagationInterceptor<TestContext>(
+            provider.GetRequiredService<IContextAccessor>(),
+            provider.GetRequiredService<IContextPropagator<TestContext>>());
+
+        Metadata? capturedHeaders = null;
+        _ = interceptor.AsyncServerStreamingCall(
+            new TestRequest(),
+            CreateClientContext(),
+            (request, context) =>
+            {
+                capturedHeaders = context.Options.Headers;
+                return CreateServerStreamingCall();
+            });
+
+        Assert.Equal("stream", capturedHeaders!.GetValue("x-tenant-id"));
+    }
+
+    [Fact]
+    public void AsyncClientStreamingCall_InjectsContextMetadata()
+    {
+        var services = BuildServices();
+        using var provider = services.BuildServiceProvider();
+        provider.GetRequiredService<IContextWriter>()
+            .SetContext(new TestContext { TenantId = "client-stream" });
+
+        var interceptor = new ContextPropagationInterceptor<TestContext>(
+            provider.GetRequiredService<IContextAccessor>(),
+            provider.GetRequiredService<IContextPropagator<TestContext>>());
+
+        Metadata? capturedHeaders = null;
+        _ = interceptor.AsyncClientStreamingCall(
+            CreateClientContext(),
+            context =>
+            {
+                capturedHeaders = context.Options.Headers;
+                return CreateClientStreamingCall();
+            });
+
+        Assert.Equal("client-stream", capturedHeaders!.GetValue("x-tenant-id"));
+    }
+
+    [Fact]
+    public void AsyncDuplexStreamingCall_InjectsContextMetadata()
+    {
+        var services = BuildServices();
+        using var provider = services.BuildServiceProvider();
+        provider.GetRequiredService<IContextWriter>()
+            .SetContext(new TestContext { TenantId = "duplex" });
+
+        var interceptor = new ContextPropagationInterceptor<TestContext>(
+            provider.GetRequiredService<IContextAccessor>(),
+            provider.GetRequiredService<IContextPropagator<TestContext>>());
+
+        Metadata? capturedHeaders = null;
+        _ = interceptor.AsyncDuplexStreamingCall(
+            CreateClientContext(),
+            context =>
+            {
+                capturedHeaders = context.Options.Headers;
+                return CreateDuplexStreamingCall();
+            });
+
+        Assert.Equal("duplex", capturedHeaders!.GetValue("x-tenant-id"));
+    }
+
+    [Fact]
+    public async Task ServerStreaming_AndClientStreaming_AndDuplexHandlers_ExtractContext()
+    {
+        var services = BuildServices();
+        using var provider = services.BuildServiceProvider();
+        var propagator = provider.GetRequiredService<IContextPropagator<TestContext>>();
+        var interceptor = new ContextInterceptor<TestContext>(
+            provider.GetRequiredService<IContextWriter>(),
+            propagator);
+        var headers = propagator.CreateMetadata(new TestContext { TenantId = "grpc-server", UserId = "u1" });
+        var callContext = new TestServerCallContext(headers);
+
+        await interceptor.ServerStreamingServerHandler(
+            new TestRequest(),
+            new TestServerStreamWriter<TestResponse>(),
+            callContext,
+            static (request, writer, context) => Task.CompletedTask);
+        await interceptor.ClientStreamingServerHandler(
+            new TestAsyncStreamReader<TestRequest>(),
+            callContext,
+            static (stream, context) => Task.FromResult(new TestResponse()));
+        await interceptor.DuplexStreamingServerHandler(
+            new TestAsyncStreamReader<TestRequest>(),
+            new TestServerStreamWriter<TestResponse>(),
+            callContext,
+            static (stream, writer, context) => Task.CompletedTask);
+
+        var stored = provider.GetRequiredService<IContextAccessor>().GetContext<TestContext>();
+        Assert.NotNull(stored);
+        Assert.Equal("grpc-server", stored!.TenantId);
+        Assert.Equal("u1", stored.UserId);
+    }
+
     private static ServiceCollection BuildServices()
     {
         var services = new ServiceCollection();
@@ -187,6 +332,32 @@ public sealed class GrpcInterceptorsTests
     private static AsyncUnaryCall<TestResponse> CreateUnaryCall(TestResponse response)
         => new(
             Task.FromResult(response),
+            Task.FromResult(new Metadata()),
+            static () => Status.DefaultSuccess,
+            static () => new Metadata(),
+            static () => { });
+
+    private static AsyncServerStreamingCall<TestResponse> CreateServerStreamingCall()
+        => new(
+            new TestAsyncStreamReader<TestResponse>(),
+            Task.FromResult(new Metadata()),
+            static () => Status.DefaultSuccess,
+            static () => new Metadata(),
+            static () => { });
+
+    private static AsyncClientStreamingCall<TestRequest, TestResponse> CreateClientStreamingCall()
+        => new(
+            new TestClientStreamWriter<TestRequest>(),
+            Task.FromResult(new TestResponse()),
+            Task.FromResult(new Metadata()),
+            static () => Status.DefaultSuccess,
+            static () => new Metadata(),
+            static () => { });
+
+    private static AsyncDuplexStreamingCall<TestRequest, TestResponse> CreateDuplexStreamingCall()
+        => new(
+            new TestClientStreamWriter<TestRequest>(),
+            new TestAsyncStreamReader<TestResponse>(),
             Task.FromResult(new Metadata()),
             static () => Status.DefaultSuccess,
             static () => new Metadata(),
@@ -241,5 +412,24 @@ public sealed class GrpcInterceptorsTests
 
         protected override Task WriteResponseHeadersAsyncCore(Metadata responseHeaders)
             => Task.CompletedTask;
+    }
+
+    private sealed class TestAsyncStreamReader<T> : IAsyncStreamReader<T>
+    {
+        public T Current => default!;
+        public Task<bool> MoveNext(CancellationToken cancellationToken) => Task.FromResult(false);
+    }
+
+    private sealed class TestClientStreamWriter<T> : IClientStreamWriter<T>
+    {
+        public WriteOptions? WriteOptions { get; set; }
+        public Task WriteAsync(T message) => Task.CompletedTask;
+        public Task CompleteAsync() => Task.CompletedTask;
+    }
+
+    private sealed class TestServerStreamWriter<T> : IServerStreamWriter<T>
+    {
+        public WriteOptions? WriteOptions { get; set; }
+        public Task WriteAsync(T message) => Task.CompletedTask;
     }
 }
