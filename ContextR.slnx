@@ -61,5 +61,6 @@
     <Project Path="tests/ContextR.Grpc.UnitTests/ContextR.Transport.Grpc.UnitTests.csproj" Id="4fa6af2e-0b2f-4a8a-8f57-ceca0953ac00" />
     <Project Path="tests/ContextR.Grpc.IntegrationTests/ContextR.Transport.Grpc.IntegrationTests.csproj" Id="9b144daa-29d3-43f1-bd2d-a5e20d96f9c0" />
     <Project Path="tests/ContextR.OpenFeature.UnitTests/ContextR.OpenFeature.UnitTests.csproj" Id="ba28eb4a-b95f-4502-8af9-09be87f37199" />
+    <Project Path="tests/ContextR.OpenFeature.IntegrationTests/ContextR.OpenFeature.IntegrationTests.csproj" Id="d9e3ccab-ea90-4cf3-bfce-875be0295efd" />
   </Folder>
 </Solution>
