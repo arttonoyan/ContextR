@@ -29,6 +29,7 @@ If you publish with GitHub Pages + MkDocs, use [Docs Home](index.md) as the site
 - [HTTP Client](ContextR.Http.md)
 - [HTTP Client Handler Scopes Deep Dive](HttpClientHandlerScopes.md)
 - [gRPC](ContextR.Grpc.md)
+- [OpenFeature](ContextR.OpenFeature.md)
 
 ## Samples
 

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ContextR.OpenFeature</AssemblyName>
+    <RootNamespace>ContextR.OpenFeature</RootNamespace>
+    <PackageId>ContextR.OpenFeature</PackageId>
+    <Description>OpenFeature.Hosting integration for ContextR. Build OpenFeature EvaluationContext from ambient ContextR contexts with fluent mapping options.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="OpenFeature.Hosting" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ContextR\ContextR.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ContextR.OpenFeature.UnitTests" />
+  </ItemGroup>
+</Project>

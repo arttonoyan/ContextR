@@ -62,6 +62,7 @@ jobs:
           dotnet pack src/ContextR.Hosting.AspNetCore/ContextR.Hosting.AspNetCore.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
           dotnet pack src/ContextR.Transport.Http/ContextR.Transport.Http.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
           dotnet pack src/ContextR.Transport.Grpc/ContextR.Transport.Grpc.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
+          dotnet pack src/ContextR.OpenFeature/ContextR.OpenFeature.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
 
       - name: Push packages to NuGet
         run: dotnet nuget push "./artifacts/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source "${{ env.NUGET_SOURCE }}" --skip-duplicate
