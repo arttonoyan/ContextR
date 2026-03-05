@@ -164,7 +164,7 @@ Scopes are nestable. Each scope saves and restores only the keys it touches:
 
 ```mermaid
 sequenceDiagram
-    participant AL as AsyncLocal‹UserContext›
+    participant AL as AsyncLocal_UserContext
 
     Note over AL: value = "root"
 
@@ -347,12 +347,12 @@ graph TD
     Accessor --> DCA["DefaultContextAccessor\n(internal, implements both)"]
     Writer --> DCA
 
-    DCA -- "CreateSnapshot()\n(extension method)" --> Capture["Captures all AsyncLocal\nvalues into immutable\nDictionary‹ContextKey, object›"]
+    DCA -- "CreateSnapshot()\n(extension method)" --> Capture["Captures all AsyncLocal\nvalues into immutable\nDictionary(ContextKey, object)"]
 
     Capture --> Snapshot["IContextSnapshot\n(scoped service)"]
 
-    Snapshot --> GetCtx["GetContext‹T›()\nReads from captured dictionary"]
-    Snapshot --> GetDomain["GetContext‹T›(domain)\nDomain-specific read"]
+    Snapshot --> GetCtx["GetContext(T)\nReads from captured dictionary"]
+    Snapshot --> GetDomain["GetContext(T, domain)\nDomain-specific read"]
     Snapshot --> BeginScope["BeginScope()\n1. Save current AsyncLocal state\n2. Write snapshot values via SetRaw\n3. Return IDisposable\n that restores on dispose"]
 ```
 
@@ -387,7 +387,7 @@ sequenceDiagram
     Scope->>Store: SetRaw → writes "alice"
     Note over Store: AsyncLocal = "alice"
 
-    App->>Acc: GetContext‹UserContext›()
+    App->>Acc: GetContext(UserContext)
     Acc-->>App: "alice"
 
     App->>Scope: 5. Dispose()
@@ -405,9 +405,9 @@ graph LR
         Grpc["(grpc, UserContext)\n→ 'grpc'"]
     end
 
-    A1["GetContext‹UserContext›()"] -- "null domain" --> Default
-    A2["GetContext‹UserContext›('web-api')"] --> Web
-    A3["GetContext‹UserContext›('grpc')"] --> Grpc
+    A1["GetContext(UserContext)"] -- "null domain" --> Default
+    A2["GetContext(UserContext, 'web-api')"] --> Web
+    A3["GetContext(UserContext, 'grpc')"] --> Grpc
 ```
 
 **Without `DefaultDomainSelector`:**
