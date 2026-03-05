@@ -2,6 +2,29 @@
 
 `ContextR.OpenFeature` connects ambient ContextR values to OpenFeature `EvaluationContext`.
 
+It is built for teams using the OpenFeature .NET SDK: <https://github.com/open-feature/dotnet-sdk/>.
+
+## Why this integration is useful
+
+`ContextR.OpenFeature` helps teams that already standardized request/user/tenant/correlation context with ContextR and now need reliable feature-flag targeting in OpenFeature.
+
+Without this integration, most applications repeat the same `AddContext` setup logic in each service. That repetition increases drift risk: one service maps keys differently, another forgets targeting key, another misses domain context. Over time this causes inconsistent flag behavior across environments and services.
+
+With `ContextR.OpenFeature`, teams can define mapping once in a consistent fluent API and reuse ambient ContextR state directly. This improves:
+
+- **Consistency**: same targeting key, kind, and attributes across services.
+- **Maintainability**: fewer duplicated context builders to review and update.
+- **Safety**: built-in collision and filtering policies reduce accidental misconfiguration.
+- **Domain readiness**: supports domain-aware mapping for multi-provider and multi-tenant setups.
+- **Adoption speed**: easier migration from custom per-app context wiring to a shared pattern.
+
+## Who this helps most
+
+- Multi-tenant SaaS platforms where tenant/user context drives rollouts.
+- Microservice systems that need the same flag targeting model in many services.
+- Teams adopting OpenFeature incrementally and wanting minimal boilerplate in each app.
+- Organizations enforcing platform standards for observability and context propagation.
+
 ## Install
 
 ```bash
