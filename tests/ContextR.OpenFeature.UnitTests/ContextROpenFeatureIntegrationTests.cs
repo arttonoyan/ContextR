@@ -329,6 +329,162 @@ public sealed class ContextROpenFeatureIntegrationTests
         Assert.Equal("b@acme.dev", context.GetValue("user.email").AsString);
     }
 
+    [Fact]
+    public void ContextRequiredExtensions_ReturnValue_ForAccessorAndSnapshot()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(ctx =>
+        {
+            ctx.Add<UserContext>();
+            ctx.AddDomain("tenant-z", d => d.Add<UserContext>());
+            ctx.AddDomainPolicy(_ => "tenant-z");
+        });
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var writer = scope.ServiceProvider.GetRequiredService<IContextWriter>();
+        var accessor = scope.ServiceProvider.GetRequiredService<IContextAccessor>();
+
+        writer.SetContext("tenant-z", new UserContext("u-z", "z@acme.dev", "s"));
+        var snapshot = accessor.CreateSnapshot("tenant-z", new UserContext("snap-z", "snap@acme.dev", "s2"));
+
+        Assert.Equal("u-z", accessor.GetRequiredContext<UserContext>().UserId);
+        Assert.Equal("u-z", accessor.GetRequiredContext<UserContext>("tenant-z").UserId);
+        Assert.Equal("snap-z", snapshot.GetRequiredContext<UserContext>("tenant-z").UserId);
+    }
+
+    [Fact]
+    public void ContextRequiredExtensions_Throws_WhenMissing()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(ctx => ctx.Add<UserContext>());
+
+        using var provider = services.BuildServiceProvider();
+        var accessor = provider.GetRequiredService<IContextAccessor>();
+        var snapshot = accessor.CreateSnapshot();
+
+        Assert.Throws<InvalidOperationException>(() => accessor.GetRequiredContext<UserContext>());
+        Assert.Throws<InvalidOperationException>(() => accessor.GetRequiredContext<UserContext>("missing-domain"));
+        Assert.Throws<InvalidOperationException>(() => snapshot.GetRequiredContext<UserContext>());
+        Assert.Throws<InvalidOperationException>(() => snapshot.GetRequiredContext<UserContext>("missing-domain"));
+    }
+
+    [Fact]
+    public void CreateSnapshot_OverloadsAndBeginScope_RestoreAmbientState()
+    {
+        var services = new ServiceCollection();
+        services.AddContextR(ctx =>
+        {
+            ctx.Add<UserContext>();
+            ctx.Add<TenantContext>();
+            ctx.AddDomain("tenant-a", d => d.Add<UserContext>());
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var accessor = provider.GetRequiredService<IContextAccessor>();
+        var writer = provider.GetRequiredService<IContextWriter>();
+
+        writer.SetContext(new UserContext("root-user", "root@acme.dev", "r"));
+        writer.SetContext(new TenantContext("root-tenant"));
+        writer.SetContext("tenant-a", new UserContext("domain-root", "d@acme.dev", "dr"));
+
+        var fullSnapshot = accessor.CreateSnapshot();
+        var defaultSnapshot = accessor.CreateSnapshot(new UserContext("default-snap", "s@acme.dev", "ss"));
+        var domainSnapshot = accessor.CreateSnapshot("tenant-a", new UserContext("domain-snap", "ds@acme.dev", "dss"));
+
+        using (fullSnapshot.BeginScope())
+        {
+            Assert.Equal("root-user", accessor.GetContext<UserContext>()?.UserId);
+            Assert.Equal("root-tenant", accessor.GetContext<TenantContext>()?.TenantId);
+        }
+
+        using (defaultSnapshot.BeginScope())
+        {
+            Assert.Equal("default-snap", accessor.GetContext<UserContext>()?.UserId);
+        }
+
+        using (domainSnapshot.BeginScope())
+        {
+            Assert.Equal("domain-snap", accessor.GetContext<UserContext>("tenant-a")?.UserId);
+        }
+
+        Assert.Equal("root-user", accessor.GetContext<UserContext>()?.UserId);
+        Assert.Equal("domain-root", accessor.GetContext<UserContext>("tenant-a")?.UserId);
+    }
+
+    [Fact]
+    public void CreateSnapshot_GuardClauses_Throw()
+    {
+        IContextAccessor? accessor = null;
+        var user = new UserContext("u", "u@acme.dev", "s");
+
+        Assert.Throws<ArgumentNullException>(() => accessor!.CreateSnapshot());
+        Assert.Throws<ArgumentNullException>(() => accessor!.CreateSnapshot(user));
+        Assert.Throws<ArgumentNullException>(() => accessor!.CreateSnapshot("d", user));
+    }
+
+    [Fact]
+    public void AddContextR_DomainOnlyWithoutDefaultOrPolicy_Throws()
+    {
+        var services = new ServiceCollection();
+
+        Assert.Throws<InvalidOperationException>(() =>
+            services.AddContextR(builder =>
+            {
+                builder.AddDomain("tenant-x", domain => domain.Add<UserContext>());
+            }));
+    }
+
+    [Fact]
+    public void AddContextR_DomainOnlyWithDefaultPolicy_DoesNotThrow()
+    {
+        var services = new ServiceCollection();
+
+        var exception = Record.Exception(() =>
+            services.AddContextR(builder =>
+            {
+                builder.AddDomain("tenant-x", domain => domain.Add<UserContext>());
+                builder.AddDomainPolicy(_ => "tenant-x");
+            }));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void AddContextR_RegistrationBuilders_ExposeServicesAndDomain()
+    {
+        var services = new ServiceCollection();
+        string? defaultDomain = "not-set";
+        string? tenantDomain = null;
+        IServiceCollection? defaultServices = null;
+        IServiceCollection? tenantServices = null;
+
+        services.AddContextR(builder =>
+        {
+            builder.Add<UserContext>(reg =>
+            {
+                defaultDomain = reg.Domain;
+                defaultServices = reg.Services;
+            });
+
+            builder.AddDomain("tenant-y", domain =>
+            {
+                domain.Add<UserContext>(reg =>
+                {
+                    tenantDomain = reg.Domain;
+                    tenantServices = reg.Services;
+                });
+            });
+
+            builder.AddDomainPolicy(_ => "tenant-y");
+        });
+
+        Assert.Null(defaultDomain);
+        Assert.Equal("tenant-y", tenantDomain);
+        Assert.Same(services, defaultServices);
+        Assert.Same(services, tenantServices);
+    }
+
     private sealed record UserContext(string UserId, string Email, string Secret);
 
     private sealed record TenantContext(string TenantId);
