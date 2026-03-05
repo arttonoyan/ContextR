@@ -101,6 +101,7 @@ nav:
       - Hosting ASP.NET Core: packages/hosting-aspnet-core.md
       - Transport HTTP: packages/transport-http.md
       - Transport gRPC: packages/transport-grpc.md
+      - OpenFeature: ContextR.OpenFeature.md
       - Package Details:
           - Resolution Details: ContextR.Resolution.md
           - Propagation Base Details: ContextR.Propagation.md

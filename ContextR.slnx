@@ -14,6 +14,7 @@
     <File Path="docs/ContextR.Propagation.Chunking.md" />
     <File Path="docs/ContextR.Propagation.md" />
     <File Path="docs/ContextR.Propagation.Token.md" />
+    <File Path="docs/ContextR.OpenFeature.md" />
     <File Path="docs/UsageCookbook.md" />
   </Folder>
   <Folder Name="/samples/">
@@ -43,6 +44,7 @@
     <Project Path="src/ContextR.Transport.Http/ContextR.Transport.Http.csproj" Id="a1d2e3f4-5678-90ab-cdef-112233445566" />
     <Project Path="src/ContextR.Hosting.AspNetCore/ContextR.Hosting.AspNetCore.csproj" Id="b2c3d4e5-6789-01bc-defa-223344556677" />
     <Project Path="src/ContextR.Transport.Grpc/ContextR.Transport.Grpc.csproj" Id="e71a3822-b2e2-47e4-a1f0-8cd95c5d2108" />
+    <Project Path="src/ContextR.OpenFeature/ContextR.OpenFeature.csproj" Id="9eaf8e44-4eb8-4ec5-8622-fb8f1d1ea5f1" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ContextR.UnitTests/ContextR.UnitTests.csproj" Id="12f7610c-c687-4fac-95fd-5597f56fedf3" />
@@ -58,5 +60,6 @@
     <Project Path="tests/ContextR.Http.IntegrationTests/ContextR.Transport.Http.IntegrationTests.csproj" Id="e5f6a7b8-0123-45ef-bcde-556677889911" />
     <Project Path="tests/ContextR.Grpc.UnitTests/ContextR.Transport.Grpc.UnitTests.csproj" Id="4fa6af2e-0b2f-4a8a-8f57-ceca0953ac00" />
     <Project Path="tests/ContextR.Grpc.IntegrationTests/ContextR.Transport.Grpc.IntegrationTests.csproj" Id="9b144daa-29d3-43f1-bd2d-a5e20d96f9c0" />
+    <Project Path="tests/ContextR.OpenFeature.UnitTests/ContextR.OpenFeature.UnitTests.csproj" Id="ba28eb4a-b95f-4502-8af9-09be87f37199" />
   </Folder>
 </Solution>
