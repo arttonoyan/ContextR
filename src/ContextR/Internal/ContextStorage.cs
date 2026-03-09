@@ -15,17 +15,9 @@ internal sealed class ContextStorage
     {
         var key = new ContextKey(domain, typeof(TContext));
         var slot = GetSlot(key);
-        var holder = slot.Value;
-
-        if (holder is not null)
-        {
-            holder.Context = null;
-        }
-
-        if (context is not null)
-        {
-            slot.Value = new ContextHolder { Context = context };
-        }
+        slot.Value = context is not null ? 
+            new ContextHolder { Context = context } : 
+            null;
     }
 
     public Dictionary<ContextKey, object> CaptureAll()

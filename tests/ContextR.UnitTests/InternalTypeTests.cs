@@ -129,5 +129,20 @@ public sealed class InternalTypeTests
     {
         public TContext? GetContext<TContext>() where TContext : class => null;
         public TContext? GetContext<TContext>(string domain) where TContext : class => null;
+
+        public IContextSnapshot CreateSnapshot() =>
+            new ContextSnapshot(new Dictionary<ContextKey, object>(), null);
+
+        public IContextSnapshot CreateSnapshot<TContext>(TContext context) where TContext : class =>
+            new ContextSnapshot(new Dictionary<ContextKey, object>
+            {
+                [new ContextKey(null, typeof(TContext))] = context
+            }, null);
+
+        public IContextSnapshot CreateSnapshot<TContext>(string domain, TContext context) where TContext : class =>
+            new ContextSnapshot(new Dictionary<ContextKey, object>
+            {
+                [new ContextKey(domain, typeof(TContext))] = context
+            }, null);
     }
 }

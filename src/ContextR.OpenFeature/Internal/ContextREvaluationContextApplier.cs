@@ -118,7 +118,10 @@ internal static class ContextREvaluationContextApplier
         return options.AllowedKeys.Contains(key);
     }
 
-    private static bool TryConvert(object? value, out Value converted)
+    private static bool TryConvert(object? value, out Value converted) =>
+        TryConvert(value, out converted, null);
+
+    private static bool TryConvert(object? value, out Value converted, HashSet<object>? visited)
     {
         if (value is null)
         {
@@ -167,14 +170,18 @@ internal static class ContextREvaluationContextApplier
             case Enum enumValue:
                 converted = new Value(enumValue.ToString());
                 return true;
-            case global::OpenFeature.Model.Structure structure:
+            case Structure structure:
                 converted = new Value(structure);
                 return true;
             case IDictionary<string, object?> dict:
-                converted = new Value(ToStructure(dict));
+                visited ??= new HashSet<object>(ReferenceEqualityComparer.Instance);
+                if (!visited.Add(dict))
+                    throw new InvalidOperationException(
+                        "Circular reference detected while converting context value to OpenFeature Structure.");
+                converted = new Value(ToStructure(dict, visited));
                 return true;
             case IEnumerable<object?> sequence:
-                converted = new Value(sequence.Select(static item => ToValue(item)).ToList());
+                converted = new Value(sequence.Select(item => ToValue(item, visited)).ToList());
                 return true;
             default:
                 converted = default!;
@@ -182,20 +189,22 @@ internal static class ContextREvaluationContextApplier
         }
     }
 
-    private static global::OpenFeature.Model.Structure ToStructure(IDictionary<string, object?> dictionary)
+    private static Structure ToStructure(
+        IDictionary<string, object?> dictionary,
+        HashSet<object> visited)
     {
-        var builder = global::OpenFeature.Model.Structure.Builder();
+        var builder = Structure.Builder();
         foreach (var kvp in dictionary)
         {
-            builder.Set(kvp.Key, ToValue(kvp.Value));
+            builder.Set(kvp.Key, ToValue(kvp.Value, visited));
         }
 
         return builder.Build();
     }
 
-    private static Value ToValue(object? value)
+    private static Value ToValue(object? value, HashSet<object>? visited)
     {
-        if (!TryConvert(value, out var converted))
+        if (!TryConvert(value, out var converted, visited))
         {
             return new Value(value?.ToString() ?? string.Empty);
         }

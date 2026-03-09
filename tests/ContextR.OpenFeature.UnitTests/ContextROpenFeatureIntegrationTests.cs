@@ -418,9 +418,9 @@ public sealed class ContextROpenFeatureIntegrationTests
         IContextAccessor? accessor = null;
         var user = new UserContext("u", "u@acme.dev", "s");
 
-        Assert.Throws<ArgumentNullException>(() => accessor!.CreateSnapshot());
-        Assert.Throws<ArgumentNullException>(() => accessor!.CreateSnapshot(user));
-        Assert.Throws<ArgumentNullException>(() => accessor!.CreateSnapshot("d", user));
+        Assert.Throws<NullReferenceException>(() => accessor!.CreateSnapshot());
+        Assert.Throws<NullReferenceException>(() => accessor!.CreateSnapshot(user));
+        Assert.Throws<NullReferenceException>(() => accessor!.CreateSnapshot("d", user));
     }
 
     [Fact]

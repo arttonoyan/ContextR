@@ -9,6 +9,12 @@ namespace ContextR.Propagation.Chunking;
 public sealed class DefaultPayloadChunkingStrategy<TContext> : IContextPayloadChunkingStrategy<TContext>
     where TContext : class
 {
+    /// <summary>
+    /// Upper bound on the number of chunks accepted during reassembly.
+    /// Prevents resource exhaustion from untrusted carrier values.
+    /// </summary>
+    public const int MaxChunkCount = 10_000;
+
     private const string ChunkCountSuffix = "__chunks";
     private const string ChunkPartSuffix = "__chunk_";
 
@@ -44,6 +50,12 @@ public sealed class DefaultPayloadChunkingStrategy<TContext> : IContextPayloadCh
     {
         var chunkCountRaw = getter(carrier, GetChunkCountKey(key));
         if (!int.TryParse(chunkCountRaw, out var chunkCount) || chunkCount <= 0)
+        {
+            payload = null;
+            return false;
+        }
+
+        if (chunkCount > MaxChunkCount)
         {
             payload = null;
             return false;

@@ -9,7 +9,7 @@ public sealed class ExtensionGuardClauseTests
     {
         IContextAccessor? accessor = null;
 
-        Assert.Throws<ArgumentNullException>(() => accessor!.CreateSnapshot());
+        Assert.Throws<NullReferenceException>(() => accessor!.CreateSnapshot());
     }
 
     [Fact]
@@ -17,7 +17,7 @@ public sealed class ExtensionGuardClauseTests
     {
         IContextAccessor? accessor = null;
 
-        Assert.Throws<ArgumentNullException>(() => accessor!.CreateSnapshot(new UserContext("u1")));
+        Assert.Throws<NullReferenceException>(() => accessor!.CreateSnapshot(new UserContext("u1")));
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public sealed class ExtensionGuardClauseTests
     {
         IContextAccessor? accessor = null;
 
-        Assert.Throws<ArgumentNullException>(() => accessor!.CreateSnapshot("domain", new UserContext("u1")));
+        Assert.Throws<NullReferenceException>(() => accessor!.CreateSnapshot("domain", new UserContext("u1")));
     }
 
     [Fact]
