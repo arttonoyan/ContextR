@@ -100,14 +100,14 @@ The snapshot mechanism captures all context values at a point in time into an im
 ```csharp
 public interface IContextSnapshot
 {
-    TContext? GetContext<TContext>() where TContext : class;
-    TContext? GetContext<TContext>(string domain) where TContext : class;
+    object? GetContext(Type contextType);
+    object? GetContext(string domain, Type contextType);
     IDisposable BeginScope();
 }
 ```
 
-- `GetContext<T>()` -- reads from the captured values dictionary (no `AsyncLocal`).
-- `GetContext<T>(domain)` -- reads a domain-specific captured value.
+- `GetContext(Type)` / `GetContext(domain, Type)` -- reads from the captured values dictionary (no `AsyncLocal`). Returns `object?` for runtime-typed access.
+- `GetContext<T>()` / `GetContext<T>(domain)` -- generic extension methods in `ContextExtensions` that delegate to the non-generic methods above.
 - `BeginScope()` -- writes captured values into `AsyncLocal` and returns a disposable that restores previous state.
 
 ### Creating snapshots
@@ -199,20 +199,21 @@ sequenceDiagram
 
 The `ContextStorage` has two write methods with fundamentally different behaviors:
 
-### `Set<T>()` -- used by normal context writes
+### `Set()` -- used by normal context writes
 
 ```csharp
+public void Set(string? domain, Type contextType, object? context)
+{
+    SetRaw(new ContextKey(domain, contextType), context);
+}
+
 public void Set<T>(string? domain, T? context) where T : class
 {
-    var slot = GetSlot(key);
-    var holder = slot.Value;
-    if (holder is not null)
-        holder.Context = null;      // Mutates the shared holder
-
-    if (context is not null)
-        slot.Value = new ContextHolder { Context = context };  // New holder
+    Set(domain, typeof(T), context);
 }
 ```
+
+The non-generic `Set(string?, Type, object?)` is the primitive. The generic `Set<T>` delegates to it.
 
 When clearing context (`context = null`), this sets `holder.Context = null` on the existing holder. Because all `ExecutionContext` copies share the same holder reference, this clears context *everywhere*. This is the correct behavior for normal lifecycle -- when context is cleared, no stale references should remain.
 
@@ -347,12 +348,12 @@ graph TD
     Accessor --> DCA["DefaultContextAccessor\n(internal, implements both)"]
     Writer --> DCA
 
-    DCA -- "CreateSnapshot()\n(extension method)" --> Capture["Captures all AsyncLocal\nvalues into immutable\nDictionary(ContextKey, object)"]
+    DCA -- "CreateSnapshot()" --> Capture["Captures all AsyncLocal\nvalues into immutable\nDictionary(ContextKey, object)"]
 
     Capture --> Snapshot["IContextSnapshot\n(scoped service)"]
 
-    Snapshot --> GetCtx["GetContext(T)\nReads from captured dictionary"]
-    Snapshot --> GetDomain["GetContext(T, domain)\nDomain-specific read"]
+    Snapshot --> GetCtx["GetContext(Type)\nReads from captured dictionary"]
+    Snapshot --> GetDomain["GetContext(domain, Type)\nDomain-specific read"]
     Snapshot --> BeginScope["BeginScope()\n1. Save current AsyncLocal state\n2. Write snapshot values via SetRaw\n3. Return IDisposable\n that restores on dispose"]
 ```
 
@@ -405,9 +406,9 @@ graph LR
         Grpc["(grpc, UserContext)\n→ 'grpc'"]
     end
 
-    A1["GetContext(UserContext)"] -- "null domain" --> Default
-    A2["GetContext(UserContext, 'web-api')"] --> Web
-    A3["GetContext(UserContext, 'grpc')"] --> Grpc
+    A1["GetContext(typeof UserContext)"] -- "null domain" --> Default
+    A2["GetContext('web-api', typeof UserContext)"] --> Web
+    A3["GetContext('grpc', typeof UserContext)"] --> Grpc
 ```
 
 **Without `DefaultDomainSelector`:**
@@ -511,9 +512,9 @@ sequenceDiagram
 
 | File | Role |
 |------|------|
-| `IContextAccessor.cs` | Read interface: `GetContext<T>()`, `GetContext<T>(domain)` |
-| `IContextWriter.cs` | Write interface: `SetContext<T>()`, `SetContext<T>(domain, context)` |
-| `IContextSnapshot.cs` | Snapshot interface: `GetContext<T>()`, `GetContext<T>(domain)`, `BeginScope()` |
+| `IContextAccessor.cs` | Read interface: `GetContext(Type)`, `GetContext(domain, Type)`, `CreateSnapshot()`, `CreateSnapshot(Type, object)`, `CreateSnapshot(domain, Type, object)` |
+| `IContextWriter.cs` | Write interface: `SetContext(Type, object?)`, `SetContext(domain, Type, object?)` |
+| `IContextSnapshot.cs` | Snapshot interface: `GetContext(Type)`, `GetContext(domain, Type)`, `BeginScope()` |
 | `IContextBuilder.cs` | Builder interface: `Add<T>()`, `AddDomain()`, `AddDomainPolicy()` |
 | `IDomainContextBuilder.cs` | Domain builder interface: `Add<T>()` |
 | `IContextRegistrationBuilder<T>.cs` | Per-type configuration surface; transport and propagation packages extend it |
@@ -524,7 +525,7 @@ sequenceDiagram
 | File | Role |
 |------|------|
 | `ContextRServiceCollectionExtensions.cs` | `AddContextR()` -- DI registration entry point |
-| `ContextSnapshotExtensions.cs` | `CreateSnapshot()` overloads on `IContextAccessor` |
+| `ContextExtensions.cs` | Generic extension methods: `GetContext<T>()`, `SetContext<T>()`, `CreateSnapshot<T>()` on all three interfaces |
 | `ContextRequiredExtensions.cs` | `GetRequiredContext<T>()` overloads on accessor and snapshot |
 
 #### Internal
