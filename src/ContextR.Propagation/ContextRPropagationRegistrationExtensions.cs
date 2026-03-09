@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
 
 namespace ContextR.Propagation;
 

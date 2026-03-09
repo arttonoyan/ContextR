@@ -1,0 +1,11 @@
+name: Documentation
+description: Documentation improvement or correction.
+title: "[DOCS] "
+labels: [docs, needs-triage]
+body:
+  - type: textarea
+    attributes:
+      label: What should change?
+      description: Describe what should be added, removed, or updated in the documentation.
+    validations:
+      required: true

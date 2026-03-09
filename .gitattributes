@@ -1,0 +1,30 @@
+# Auto-detect text files and normalize line endings
+* text=auto eol=lf
+
+# C# sources
+*.cs text diff=csharp
+
+# .NET project files
+*.csproj text
+*.slnx text
+*.props text
+*.targets text
+
+# Solution files require CRLF
+*.sln text eol=crlf
+
+# Config and data files
+*.xml text
+*.json text
+*.yml text
+*.yaml text
+*.md text
+
+# Shell scripts
+*.sh text eol=lf
+*.ps1 text eol=crlf
+
+# Binary files
+*.png binary
+*.ico binary
+*.snk binary
