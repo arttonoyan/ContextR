@@ -6,19 +6,20 @@ namespace ContextR;
 public interface IContextAccessor
 {
     /// <summary>
-    /// Gets the ambient context value of type <typeparamref name="TContext"/>, if present.
+    /// Gets the ambient context value of the specified <paramref name="contextType"/>, if present.
     /// </summary>
-    /// <typeparam name="TContext">The context type.</typeparam>
+    /// <param name="contextType">The context type.</param>
     /// <returns>The current context value, or <see langword="null"/> when not set.</returns>
-    TContext? GetContext<TContext>() where TContext : class;
+    object? GetContext(Type contextType);
 
     /// <summary>
-    /// Gets the ambient context value of type <typeparamref name="TContext"/> for the specified domain, if present.
+    /// Gets the ambient context value of the specified <paramref name="contextType"/>
+    /// for the specified domain, if present.
     /// </summary>
-    /// <typeparam name="TContext">The context type.</typeparam>
     /// <param name="domain">The domain to read from.</param>
+    /// <param name="contextType">The context type.</param>
     /// <returns>The current context value, or <see langword="null"/> when not set.</returns>
-    TContext? GetContext<TContext>(string domain) where TContext : class;
+    object? GetContext(string domain, Type contextType);
 
     /// <summary>
     /// Captures a snapshot of all current ambient context values (across all domains).
@@ -30,24 +31,24 @@ public interface IContextAccessor
     /// Creates a snapshot containing only the provided context value in the default domain,
     /// without touching ambient state.
     /// </summary>
-    /// <typeparam name="TContext">The context type.</typeparam>
+    /// <param name="contextType">The context type.</param>
     /// <param name="context">The context value to include in the snapshot.</param>
     /// <returns>An immutable snapshot containing only <paramref name="context"/>.</returns>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="context"/> is <see langword="null"/>.
     /// </exception>
-    IContextSnapshot CreateSnapshot<TContext>(TContext context) where TContext : class;
+    IContextSnapshot CreateSnapshot(Type contextType, object context);
 
     /// <summary>
     /// Creates a snapshot containing only the provided context value for the specified domain,
     /// without touching ambient state.
     /// </summary>
-    /// <typeparam name="TContext">The context type.</typeparam>
     /// <param name="domain">The domain to associate the context value with.</param>
+    /// <param name="contextType">The context type.</param>
     /// <param name="context">The context value to include in the snapshot.</param>
     /// <returns>An immutable snapshot containing only <paramref name="context"/> for <paramref name="domain"/>.</returns>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="context"/> is <see langword="null"/>.
     /// </exception>
-    IContextSnapshot CreateSnapshot<TContext>(string domain, TContext context) where TContext : class;
+    IContextSnapshot CreateSnapshot(string domain, Type contextType, object context);
 }

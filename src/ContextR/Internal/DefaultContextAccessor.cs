@@ -13,14 +13,14 @@ internal sealed class DefaultContextAccessor : IContextAccessor, IContextWriter
         _serviceProvider = serviceProvider;
     }
 
-    public TContext? GetContext<TContext>() where TContext : class
+    public object? GetContext(Type contextType)
     {
-        return Storage.Get<TContext>(GetDefaultDomain());
+        return Storage.Get(GetDefaultDomain(), contextType);
     }
 
-    public TContext? GetContext<TContext>(string domain) where TContext : class
+    public object? GetContext(string domain, Type contextType)
     {
-        return Storage.Get<TContext>(domain);
+        return Storage.Get(domain, contextType);
     }
 
     public IContextSnapshot CreateSnapshot()
@@ -28,36 +28,36 @@ internal sealed class DefaultContextAccessor : IContextAccessor, IContextWriter
         return new ContextSnapshot(CaptureCurrentValues(), GetDefaultDomain());
     }
 
-    public IContextSnapshot CreateSnapshot<TContext>(TContext context) where TContext : class
+    public IContextSnapshot CreateSnapshot(Type contextType, object context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         var defaultDomain = GetDefaultDomain();
         return new ContextSnapshot(new Dictionary<ContextKey, object>
         {
-            [new ContextKey(defaultDomain, typeof(TContext))] = context
+            [new ContextKey(defaultDomain, contextType)] = context
         }, defaultDomain);
     }
 
-    public IContextSnapshot CreateSnapshot<TContext>(string domain, TContext context) where TContext : class
+    public IContextSnapshot CreateSnapshot(string domain, Type contextType, object context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         var defaultDomain = GetDefaultDomain();
         return new ContextSnapshot(new Dictionary<ContextKey, object>
         {
-            [new ContextKey(domain, typeof(TContext))] = context
+            [new ContextKey(domain, contextType)] = context
         }, defaultDomain);
     }
 
-    public void SetContext<TContext>(TContext? context) where TContext : class
+    public void SetContext(Type contextType, object? context)
     {
-        Storage.Set(GetDefaultDomain(), context);
+        Storage.Set(GetDefaultDomain(), contextType, context);
     }
 
-    public void SetContext<TContext>(string domain, TContext? context) where TContext : class
+    public void SetContext(string domain, Type contextType, object? context)
     {
-        Storage.Set(domain, context);
+        Storage.Set(domain, contextType, context);
     }
 
     private string? GetDefaultDomain() => _domainSelector?.Invoke(_serviceProvider);

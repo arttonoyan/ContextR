@@ -6,18 +6,24 @@ internal sealed class ContextStorage
 {
     private readonly ConcurrentDictionary<ContextKey, AsyncLocal<ContextHolder?>> _storage = new();
 
+    public object? Get(string? domain, Type contextType)
+    {
+        return GetSlot(new ContextKey(domain, contextType)).Value?.Context;
+    }
+
     public TContext? Get<TContext>(string? domain) where TContext : class
     {
-        return GetSlot(new ContextKey(domain, typeof(TContext))).Value?.Context as TContext;
+        return Get(domain, typeof(TContext)) as TContext;
+    }
+
+    public void Set(string? domain, Type contextType, object? context)
+    {
+        SetRaw(new ContextKey(domain, contextType), context);
     }
 
     public void Set<TContext>(string? domain, TContext? context) where TContext : class
     {
-        var key = new ContextKey(domain, typeof(TContext));
-        var slot = GetSlot(key);
-        slot.Value = context is not null ? 
-            new ContextHolder { Context = context } : 
-            null;
+        Set(domain, typeof(TContext), context);
     }
 
     public Dictionary<ContextKey, object> CaptureAll()

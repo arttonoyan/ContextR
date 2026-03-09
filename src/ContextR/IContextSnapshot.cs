@@ -6,19 +6,20 @@ namespace ContextR;
 public interface IContextSnapshot
 {
     /// <summary>
-    /// Gets a captured context value of type <typeparamref name="TContext"/>, if present.
+    /// Gets a captured context value of the specified <paramref name="contextType"/>, if present.
     /// </summary>
-    /// <typeparam name="TContext">The context type.</typeparam>
+    /// <param name="contextType">The context type.</param>
     /// <returns>The captured context value, or <see langword="null"/> when not present.</returns>
-    TContext? GetContext<TContext>() where TContext : class;
+    object? GetContext(Type contextType);
 
     /// <summary>
-    /// Gets a captured context value of type <typeparamref name="TContext"/> for the specified domain, if present.
+    /// Gets a captured context value of the specified <paramref name="contextType"/>
+    /// for the specified domain, if present.
     /// </summary>
-    /// <typeparam name="TContext">The context type.</typeparam>
     /// <param name="domain">The domain to read from.</param>
+    /// <param name="contextType">The context type.</param>
     /// <returns>The captured context value, or <see langword="null"/> when not present.</returns>
-    TContext? GetContext<TContext>(string domain) where TContext : class;
+    object? GetContext(string domain, Type contextType);
 
     /// <summary>
     /// Activates this snapshot for the current execution flow and returns a disposable boundary
