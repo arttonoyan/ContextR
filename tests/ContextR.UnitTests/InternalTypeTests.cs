@@ -127,22 +127,22 @@ public sealed class InternalTypeTests
 
     private sealed class StubContextAccessor : IContextAccessor
     {
-        public TContext? GetContext<TContext>() where TContext : class => null;
-        public TContext? GetContext<TContext>(string domain) where TContext : class => null;
+        public object? GetContext(Type contextType) => null;
+        public object? GetContext(string domain, Type contextType) => null;
 
         public IContextSnapshot CreateSnapshot() =>
             new ContextSnapshot(new Dictionary<ContextKey, object>(), null);
 
-        public IContextSnapshot CreateSnapshot<TContext>(TContext context) where TContext : class =>
+        public IContextSnapshot CreateSnapshot(Type contextType, object context) =>
             new ContextSnapshot(new Dictionary<ContextKey, object>
             {
-                [new ContextKey(null, typeof(TContext))] = context
+                [new ContextKey(null, contextType)] = context
             }, null);
 
-        public IContextSnapshot CreateSnapshot<TContext>(string domain, TContext context) where TContext : class =>
+        public IContextSnapshot CreateSnapshot(string domain, Type contextType, object context) =>
             new ContextSnapshot(new Dictionary<ContextKey, object>
             {
-                [new ContextKey(domain, typeof(TContext))] = context
+                [new ContextKey(domain, contextType)] = context
             }, null);
     }
 }

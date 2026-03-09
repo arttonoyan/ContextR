@@ -64,17 +64,9 @@ internal static class ContextREvaluationContextApplier
 
     private static object? GetContext(IContextAccessor accessor, Type contextType, string? domain)
     {
-        var method = domain is null
-            ? typeof(IContextAccessor).GetMethod(nameof(IContextAccessor.GetContext), Type.EmptyTypes)
-            : typeof(IContextAccessor).GetMethod(nameof(IContextAccessor.GetContext), [typeof(string)]);
-
-        if (method is null)
-            return null;
-
-        var generic = method.MakeGenericMethod(contextType);
         return domain is null
-            ? generic.Invoke(accessor, null)
-            : generic.Invoke(accessor, [domain]);
+            ? accessor.GetContext(contextType)
+            : accessor.GetContext(domain, contextType);
     }
 
     private static void WriteAttribute(

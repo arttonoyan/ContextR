@@ -11,17 +11,17 @@ internal sealed class ContextSnapshot : IContextSnapshot
         _defaultDomain = defaultDomain;
     }
 
-    public TContext? GetContext<TContext>() where TContext : class
+    public object? GetContext(Type contextType)
     {
-        return _values.TryGetValue(new ContextKey(_defaultDomain, typeof(TContext)), out var value)
-            ? value as TContext
+        return _values.TryGetValue(new ContextKey(_defaultDomain, contextType), out var value)
+            ? value
             : null;
     }
 
-    public TContext? GetContext<TContext>(string domain) where TContext : class
+    public object? GetContext(string domain, Type contextType)
     {
-        return _values.TryGetValue(new ContextKey(domain, typeof(TContext)), out var value)
-            ? value as TContext
+        return _values.TryGetValue(new ContextKey(domain, contextType), out var value)
+            ? value
             : null;
     }
 
