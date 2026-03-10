@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ContextR.Propagation.Signing</AssemblyName>
+    <RootNamespace>ContextR.Propagation.Signing</RootNamespace>
+    <PackageId>ContextR.Propagation.Signing</PackageId>
+    <Description>HMAC-based context signing for ContextR propagation, providing tamper detection for context headers across service boundaries.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ContextR.Propagation.Signing.UnitTests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ContextR.Propagation\ContextR.Propagation.csproj" />
+  </ItemGroup>
+</Project>

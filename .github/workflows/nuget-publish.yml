@@ -59,6 +59,7 @@ jobs:
           dotnet pack src/ContextR.Propagation.InlineJson/ContextR.Propagation.InlineJson.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
           dotnet pack src/ContextR.Propagation.Chunking/ContextR.Propagation.Chunking.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
           dotnet pack src/ContextR.Propagation.Token/ContextR.Propagation.Token.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
+          dotnet pack src/ContextR.Propagation.Signing/ContextR.Propagation.Signing.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
           dotnet pack src/ContextR.Hosting.AspNetCore/ContextR.Hosting.AspNetCore.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
           dotnet pack src/ContextR.Transport.Http/ContextR.Transport.Http.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
           dotnet pack src/ContextR.Transport.Grpc/ContextR.Transport.Grpc.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts

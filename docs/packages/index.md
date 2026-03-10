@@ -5,7 +5,7 @@ ContextR is a multi-package ecosystem. Use this section as a package selection c
 ## Ecosystem Model
 
 - **Core**: ambient context, snapshots, domains, and registration primitives.
-- **Strategies**: payload and propagation behavior (`Mapping`, `Inline JSON`, `Chunking`, `Token`).
+- **Strategies**: payload and propagation behavior (`Mapping`, `Inline JSON`, `Chunking`, `Token`, `Signing`).
 - **Transports**: ingress/egress integrations for ASP.NET Core, `HttpClient`, and gRPC.
 - **Utilities and extensions**: package-specific adapters and policy hooks.
 
@@ -19,9 +19,10 @@ Start with this decision flow:
 4. Need complex property payloads? Add **Propagation Inline JSON**.
 5. Need oversize chunk split/reassembly? Add **Propagation Chunking**.
 6. Need out-of-band token contracts for large payload references? Add **Propagation Token**.
-7. Need ASP.NET Core ingress extraction? Add **Hosting ASP.NET Core**.
-8. Need outbound HTTP propagation? Add **Transport HTTP**.
-9. Need outbound/inbound gRPC metadata propagation? Add **Transport gRPC**.
+7. Need tamper detection for context headers? Add **Propagation Signing**.
+8. Need ASP.NET Core ingress extraction? Add **Hosting ASP.NET Core**.
+9. Need outbound HTTP propagation? Add **Transport HTTP**.
+10. Need outbound/inbound gRPC metadata propagation? Add **Transport gRPC**.
 
 ## Package Catalog
 
@@ -34,6 +35,7 @@ Start with this decision flow:
 | `ContextR.Propagation.InlineJson` | JSON payload strategy for complex mapped properties | Lists/arrays/custom class properties in transport metadata | `dotnet add package ContextR.Propagation.InlineJson` | `ContextR`, `ContextR.Propagation` |
 | `ContextR.Propagation.Chunking` | Chunk split/reassembly for oversize payloads | Metadata size constraints with `ChunkProperty` behavior | `dotnet add package ContextR.Propagation.Chunking` | `ContextR.Propagation` |
 | `ContextR.Propagation.Token` | Token/reference contracts for out-of-band payload storage | Large payload reference contracts and token codecs | `dotnet add package ContextR.Propagation.Token` | `ContextR.Propagation` |
+| `ContextR.Propagation.Signing` | HMAC-based tamper detection for context headers | Multi-hop flows requiring integrity verification | `dotnet add package ContextR.Propagation.Signing` | `ContextR.Propagation` |
 | `ContextR.Hosting.AspNetCore` | ASP.NET Core ingress extraction middleware | Service ingress from HTTP where context arrives in headers | `dotnet add package ContextR.Hosting.AspNetCore` | `ContextR`, `ContextR.Propagation`, `ContextR.Transport.Http` |
 | `ContextR.Transport.Http` | `HttpClient` propagation handler and registration APIs | Outbound HTTP propagation through `IHttpClientFactory` | `dotnet add package ContextR.Transport.Http` | `ContextR`, `ContextR.Propagation` |
 | `ContextR.Transport.Grpc` | gRPC interceptors and metadata adapters | Outbound/inbound gRPC context propagation | `dotnet add package ContextR.Transport.Grpc` | `ContextR`, `ContextR.Propagation` |
@@ -47,6 +49,7 @@ Start with this decision flow:
 - [Propagation Inline JSON](propagation-inline-json.md)
 - [Propagation Chunking](propagation-chunking.md)
 - [Propagation Token](propagation-token.md)
+- [Propagation Signing](propagation-signing.md)
 - [Hosting ASP.NET Core](hosting-aspnet-core.md)
 - [Transport HTTP](transport-http.md)
 - [Transport gRPC](transport-grpc.md)

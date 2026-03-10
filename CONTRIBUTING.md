@@ -121,7 +121,7 @@ BREAKING CHANGE: description of breaking change (optional footer)
 
 ### Scopes (optional)
 
-Scopes map to project packages: `core`, `propagation`, `transport-http`, `transport-grpc`, `aspnetcore`, `resolution`, `openfeature`.
+Scopes map to project packages: `core`, `propagation`, `signing`, `transport-http`, `transport-grpc`, `aspnetcore`, `resolution`, `openfeature`.
 
 ### Breaking changes
 
