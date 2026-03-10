@@ -58,6 +58,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsContextRTestProject)' == 'true'">
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
     <CoverletOutputFormat Condition="'$(CoverletOutputFormat)' == ''">cobertura</CoverletOutputFormat>
     <CoverletOutput Condition="'$(CoverletOutput)' == ''">$(MSBuildProjectDirectory)\TestResults\Coverage\</CoverletOutput>
     <IncludeTestAssembly>false</IncludeTestAssembly>

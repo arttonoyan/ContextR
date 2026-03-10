@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using ContextR.Hosting.AspNetCore.Internal;
 
-namespace ContextR.AspNetCore.UnitTests;
+namespace ContextR.Hosting.AspNetCore.UnitTests;
 
 public sealed class ContextMiddlewareTests
 {
@@ -20,11 +19,11 @@ public sealed class ContextMiddlewareTests
         var accessor = provider.GetRequiredService<IContextAccessor>();
 
         TestContext? capturedContext = null;
-        RequestDelegate next = _ =>
+        Task next(HttpContext _)
         {
             capturedContext = accessor.GetContext<TestContext>();
             return Task.CompletedTask;
-        };
+        }
 
         var middleware = new ContextMiddleware<TestContext>(next);
         var httpContext = new DefaultHttpContext();
@@ -52,15 +51,17 @@ public sealed class ContextMiddlewareTests
         var accessor = provider.GetRequiredService<IContextAccessor>();
 
         TestContext? capturedContext = null;
-        RequestDelegate next = _ =>
+        Task next(HttpContext _)
         {
             capturedContext = accessor.GetContext<TestContext>();
             return Task.CompletedTask;
-        };
+        }
 
         var middleware = new ContextMiddleware<TestContext>(next);
-        var httpContext = new DefaultHttpContext();
-        httpContext.RequestServices = provider;
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = provider
+        };
 
         await middleware.InvokeAsync(httpContext, propagator, writer);
 
@@ -79,11 +80,11 @@ public sealed class ContextMiddlewareTests
         var writer = provider.GetRequiredService<IContextWriter>();
 
         var nextCalled = false;
-        RequestDelegate next = _ =>
+        Task next(HttpContext _)
         {
             nextCalled = true;
             return Task.CompletedTask;
-        };
+        }
 
         var middleware = new ContextMiddleware<TestContext>(next);
         var httpContext = new DefaultHttpContext { RequestServices = provider };
@@ -107,11 +108,11 @@ public sealed class ContextMiddlewareTests
         var accessor = provider.GetRequiredService<IContextAccessor>();
 
         TestContext? capturedContext = null;
-        RequestDelegate next = _ =>
+        Task next(HttpContext _)
         {
             capturedContext = accessor.GetContext<TestContext>();
             return Task.CompletedTask;
-        };
+        }
 
         var middleware = new ContextMiddleware<TestContext>(next);
         var httpContext = new DefaultHttpContext();
@@ -138,11 +139,11 @@ public sealed class ContextMiddlewareTests
         var writer = provider.GetRequiredService<IContextWriter>();
 
         var nextCalled = false;
-        RequestDelegate next = _ =>
+        Task next(HttpContext _)
         {
             nextCalled = true;
             return Task.CompletedTask;
-        };
+        }
 
         var middleware = new ContextMiddleware<TestContext>(next);
         var httpContext = new DefaultHttpContext { RequestServices = provider };
@@ -175,11 +176,11 @@ public sealed class ContextMiddlewareTests
         var writer = provider.GetRequiredService<IContextWriter>();
 
         var nextCalled = false;
-        RequestDelegate next = _ =>
+        Task next(HttpContext _)
         {
             nextCalled = true;
             return Task.CompletedTask;
-        };
+        }
 
         var middleware = new ContextMiddleware<TestContext>(next);
         var httpContext = new DefaultHttpContext { RequestServices = provider };
@@ -232,11 +233,11 @@ public sealed class ContextMiddlewareTests
         var accessor = provider.GetRequiredService<IContextAccessor>();
 
         TestContext? capturedContext = null;
-        RequestDelegate next = _ =>
+        Task next(HttpContext _)
         {
             capturedContext = accessor.GetContext<TestContext>();
             return Task.CompletedTask;
-        };
+        }
 
         var middleware = new ContextMiddleware<TestContext>(next);
         var httpContext = new DefaultHttpContext { RequestServices = provider };

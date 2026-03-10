@@ -181,7 +181,7 @@ public sealed class DependencyInjectionIntegrationTests
         var accessor = provider.GetRequiredService<IContextAccessor>();
         var writer = provider.GetRequiredService<IContextWriter>();
 
-        Assert.IsAssignableFrom<IContextAccessor>(writer);
+        Assert.IsType<IContextAccessor>(writer, exactMatch: false);
         Assert.Same(accessor, writer);
     }
 

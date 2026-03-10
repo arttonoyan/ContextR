@@ -1,5 +1,4 @@
 using ContextR.Internal;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace ContextR.UnitTests;
 
