@@ -70,11 +70,11 @@ Yes:
 
 ## How can I contribute?
 
-Read the [Contributing Guide](../CONTRIBUTING.md). It covers branch naming, commit conventions ([Conventional Commits](https://www.conventionalcommits.org)), the PR process, and code style expectations.
+Read the [Contributing Guide](https://github.com/arttonoyan/ContextR/blob/main/CONTRIBUTING.md). It covers branch naming, commit conventions ([Conventional Commits](https://www.conventionalcommits.org)), the PR process, and code style expectations.
 
 ## Where should I start after reading this?
 
 1. [Getting Started](GettingStarted.md)  
 2. [Usage Cookbook](UsageCookbook.md)  
 3. [Samples](samples/index.md)  
-4. [Contributing Guide](../CONTRIBUTING.md)
+4. [Contributing Guide](https://github.com/arttonoyan/ContextR/blob/main/CONTRIBUTING.md)

@@ -37,7 +37,7 @@ If you publish with GitHub Pages + MkDocs, use [Docs Home](index.md) as the site
 
 ## Community
 
-- [Contributing Guide](../CONTRIBUTING.md)
-- [Code of Conduct](../CODE_OF_CONDUCT.md)
-- [Security Policy](../SECURITY.md)
-- [Changelog](../CHANGELOG.md)
+- [Contributing Guide](https://github.com/arttonoyan/ContextR/blob/main/CONTRIBUTING.md)
+- [Code of Conduct](https://github.com/arttonoyan/ContextR/blob/main/CODE_OF_CONDUCT.md)
+- [Security Policy](https://github.com/arttonoyan/ContextR/blob/main/SECURITY.md)
+- [Changelog](https://github.com/arttonoyan/ContextR/blob/main/CHANGELOG.md)
