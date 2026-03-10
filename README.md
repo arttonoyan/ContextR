@@ -193,9 +193,7 @@ Use `AddContextRResolution()` only for advanced cases where you need orchestrato
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on branch naming, commit conventions, and the PR process.
 
 - [Contributing Guide](CONTRIBUTING.md)
-- [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Security Policy](SECURITY.md)
-- [Changelog](CHANGELOG.md)
 
 ## Design Principles
 
