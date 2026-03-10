@@ -107,7 +107,7 @@ internal sealed class SigningContextPropagator<TContext> : IContextPropagator<TC
 
         var captured = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        var interceptingGetter = (TCarrier c, string headerKey) =>
+        string? InterceptingGetter(TCarrier c, string headerKey)
         {
             if (string.Equals(headerKey, _options.SignatureHeader, StringComparison.Ordinal))
                 return null;
@@ -117,9 +117,9 @@ internal sealed class SigningContextPropagator<TContext> : IContextPropagator<TC
                 captured[headerKey] = value;
 
             return value;
-        };
+        }
 
-        var context = _inner.Extract(carrier, interceptingGetter);
+        var context = _inner.Extract(carrier, InterceptingGetter);
         if (context is null)
             return null;
 

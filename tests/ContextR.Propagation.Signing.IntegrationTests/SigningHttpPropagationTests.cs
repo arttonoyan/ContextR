@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text.Json;
 using ContextR.Propagation.Signing.IntegrationTests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -84,8 +83,8 @@ public sealed class SigningHttpPropagationTests
                 ctx.Add<TenantContext>(reg => reg
                     .MapProperty(c => c.TenantId, "X-Tenant-Id")
                     .MapProperty(c => c.Region, "X-Region")
-                    .UseContextSigning<TenantContext>(o => o.Key = TestKey)
-                    .OnPropagationFailure<TenantContext>(_ => PropagationFailureAction.SkipContext)
+                    .UseContextSigning(o => o.Key = TestKey)
+                    .OnPropagationFailure(_ => PropagationFailureAction.SkipContext)
                     .UseAspNetCore()
                     .UseGlobalHttpPropagation());
             });
@@ -104,7 +103,7 @@ public sealed class SigningHttpPropagationTests
             ctx.Add<TenantContext>(reg => reg
                 .MapProperty(c => c.TenantId, "X-Tenant-Id")
                 .MapProperty(c => c.Region, "X-Region")
-                .UseContextSigning<TenantContext>(o => o.Key = TestKey));
+                .UseContextSigning(o => o.Key = TestKey));
         });
 
         return services.BuildServiceProvider().GetRequiredService<IContextPropagator<TenantContext>>();

@@ -5,7 +5,7 @@ namespace ContextR.Propagation.Signing;
 /// </summary>
 public sealed class SigningOptions
 {
-    private readonly Dictionary<int, byte[]> _keys = new();
+    private readonly Dictionary<int, byte[]> _keys = [];
 
     /// <summary>
     /// Sets a single HMAC key for signing and verification.
