@@ -1,0 +1,49 @@
+name: Bug Report
+description: Found a bug? Let us know.
+title: "[BUG] "
+labels: [bug, needs-triage]
+body:
+  - type: textarea
+    attributes:
+      label: Observed behavior
+      description: What happened? Describe the bug you encountered.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps, code snippets, or a repro project that demonstrates the issue.
+    validations:
+      required: false
+  - type: dropdown
+    attributes:
+      label: Package / area
+      description: Which package is affected?
+      options:
+        - ContextR (core)
+        - ContextR.Propagation
+        - ContextR.Propagation.Mapping
+        - ContextR.Propagation.InlineJson
+        - ContextR.Propagation.Chunking
+        - ContextR.Propagation.Token
+        - ContextR.Transport.Http
+        - ContextR.Transport.Grpc
+        - ContextR.Hosting.AspNetCore
+        - ContextR.Resolution
+        - ContextR.OpenFeature
+        - Other / unsure
+    validations:
+      required: false
+  - type: input
+    attributes:
+      label: .NET version
+      description: Output of `dotnet --version`.
+      placeholder: "10.0.100"
+    validations:
+      required: false

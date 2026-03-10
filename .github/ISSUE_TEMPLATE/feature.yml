@@ -1,0 +1,33 @@
+name: Feature Request
+description: Suggest new functionality.
+title: "[FEATURE] "
+labels: [feature, needs-triage]
+body:
+  - type: textarea
+    attributes:
+      label: Description
+      description: |
+        Describe the feature and the use case it addresses.
+        Include code examples or API sketches if applicable.
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Package / area
+      description: Which package would this feature belong to?
+      options:
+        - ContextR (core)
+        - ContextR.Propagation
+        - ContextR.Propagation.Mapping
+        - ContextR.Propagation.InlineJson
+        - ContextR.Propagation.Chunking
+        - ContextR.Propagation.Token
+        - ContextR.Transport.Http
+        - ContextR.Transport.Grpc
+        - ContextR.Hosting.AspNetCore
+        - ContextR.Resolution
+        - ContextR.OpenFeature
+        - New package
+        - Other / unsure
+    validations:
+      required: false

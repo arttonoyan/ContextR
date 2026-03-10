@@ -34,3 +34,8 @@ If you publish with GitHub Pages + MkDocs, use [Docs Home](index.md) as the site
 ## Samples
 
 - [Samples Overview](samples/index.md)
+
+## Community
+
+- [Contributing Guide](https://github.com/arttonoyan/ContextR/blob/main/CONTRIBUTING.md)
+- [Security Policy](https://github.com/arttonoyan/ContextR/blob/main/SECURITY.md)
