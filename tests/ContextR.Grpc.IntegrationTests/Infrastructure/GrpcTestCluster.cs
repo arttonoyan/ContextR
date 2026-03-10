@@ -3,7 +3,6 @@ using System.Text.Json;
 using ContextR.Grpc.IntegrationTests.Protos;
 using global::Grpc.Net.Client;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;

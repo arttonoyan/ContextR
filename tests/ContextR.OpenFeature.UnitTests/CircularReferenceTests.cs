@@ -1,5 +1,3 @@
-using ContextR.OpenFeature;
-
 namespace ContextR.OpenFeature.UnitTests;
 
 /// <summary>

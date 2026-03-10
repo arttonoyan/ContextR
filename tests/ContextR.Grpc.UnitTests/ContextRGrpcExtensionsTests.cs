@@ -1,4 +1,3 @@
-using ContextR.Transport.Grpc;
 using Grpc.Net.ClientFactory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
