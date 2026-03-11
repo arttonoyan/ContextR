@@ -204,4 +204,4 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for gu
 
 ## Status
 
-ContextR is actively evolving. Breaking changes may occur while architecture and package boundaries are refined.
+ContextR v1.0.0 is the first stable release. The public API surface is considered stable and follows [semantic versioning](https://semver.org/).
