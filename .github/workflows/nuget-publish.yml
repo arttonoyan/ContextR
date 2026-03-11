@@ -1,13 +1,14 @@
 name: nuget-publish
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v[0-9]*.[0-9]*.[0-9]*"
   workflow_dispatch:
     inputs:
       version:
-        description: "Package version (example: 1.2.3). If empty, uses release tag."
-        required: false
+        description: "Prerelease version (e.g. 1.0.0-alpha, 2.1.0-beta.1, 3.0.0-rc.2)"
+        required: true
         type: string
 
 permissions:
@@ -19,6 +20,48 @@ jobs:
     env:
       NUGET_SOURCE: https://api.nuget.org/v3/index.json
     steps:
+      - name: Validate and resolve version
+        id: version
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          VERSION_INPUT: ${{ inputs.version }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          SEMVER_RE='^[0-9]+\.[0-9]+\.[0-9]+([-][a-zA-Z0-9]+([.][a-zA-Z0-9]+)*)?$'
+          TAG_RE='^v[0-9]+\.[0-9]+\.[0-9]+([-][a-zA-Z0-9]+([.][a-zA-Z0-9]+)*)?$'
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            VERSION="$VERSION_INPUT"
+
+            if [[ ! "$VERSION" =~ $SEMVER_RE ]]; then
+              echo "::error::Invalid version format: '$VERSION'. Expected: X.Y.Z-prerelease (e.g. 1.0.0-alpha, 1.0.0-beta.1)"
+              exit 1
+            fi
+
+            if [[ "$VERSION" != *-* ]]; then
+              echo "::error::Manual dispatch allows prerelease versions only. Got stable version '$VERSION'. Create a tag v$VERSION to publish a stable release."
+              exit 1
+            fi
+
+            echo "source=manual" >> "$GITHUB_OUTPUT"
+          else
+            TAG="$TAG_NAME"
+
+            if [[ ! "$TAG" =~ $TAG_RE ]]; then
+              echo "::error::Invalid tag format: '$TAG'. Expected: vX.Y.Z or vX.Y.Z-suffix (e.g. v1.0.0, v1.0.0-rc.1)"
+              exit 1
+            fi
+
+            VERSION="${TAG#v}"
+            echo "source=tag" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "### :package: NuGet Publish" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Version:** \`$VERSION\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Trigger:** $EVENT_NAME" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -27,43 +70,39 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Resolve version
-        id: version
-        shell: bash
-        run: |
-          if [[ -n "${{ github.event.inputs.version }}" ]]; then
-            VERSION="${{ github.event.inputs.version }}"
-          elif [[ -n "${{ github.event.release.tag_name }}" ]]; then
-            VERSION="${{ github.event.release.tag_name }}"
-            VERSION="${VERSION#v}"
-          else
-            echo "No version provided and no release tag found."
-            exit 1
-          fi
-
-          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Using package version: $VERSION"
-
       - name: Restore
         run: dotnet restore ContextR.slnx
 
       - name: Build
         run: dotnet build ContextR.slnx --configuration Release --no-restore
 
+      - name: Test
+        run: dotnet test ContextR.slnx --configuration Release --no-build
+
       - name: Pack source projects
         run: |
-          dotnet pack src/ContextR/ContextR.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
-          dotnet pack src/ContextR.Resolution/ContextR.Resolution.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
-          dotnet pack src/ContextR.Propagation/ContextR.Propagation.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
-          dotnet pack src/ContextR.Propagation.Mapping/ContextR.Propagation.Mapping.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
-          dotnet pack src/ContextR.Propagation.InlineJson/ContextR.Propagation.InlineJson.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
-          dotnet pack src/ContextR.Propagation.Chunking/ContextR.Propagation.Chunking.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
-          dotnet pack src/ContextR.Propagation.Token/ContextR.Propagation.Token.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
-          dotnet pack src/ContextR.Propagation.Signing/ContextR.Propagation.Signing.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
-          dotnet pack src/ContextR.Hosting.AspNetCore/ContextR.Hosting.AspNetCore.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
-          dotnet pack src/ContextR.Transport.Http/ContextR.Transport.Http.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
-          dotnet pack src/ContextR.Transport.Grpc/ContextR.Transport.Grpc.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
-          dotnet pack src/ContextR.OpenFeature/ContextR.OpenFeature.csproj --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.value }} -o ./artifacts
+          projects=(
+            src/ContextR/ContextR.csproj
+            src/ContextR.Resolution/ContextR.Resolution.csproj
+            src/ContextR.Propagation/ContextR.Propagation.csproj
+            src/ContextR.Propagation.Mapping/ContextR.Propagation.Mapping.csproj
+            src/ContextR.Propagation.InlineJson/ContextR.Propagation.InlineJson.csproj
+            src/ContextR.Propagation.Chunking/ContextR.Propagation.Chunking.csproj
+            src/ContextR.Propagation.Token/ContextR.Propagation.Token.csproj
+            src/ContextR.Propagation.Signing/ContextR.Propagation.Signing.csproj
+            src/ContextR.Hosting.AspNetCore/ContextR.Hosting.AspNetCore.csproj
+            src/ContextR.Transport.Http/ContextR.Transport.Http.csproj
+            src/ContextR.Transport.Grpc/ContextR.Transport.Grpc.csproj
+            src/ContextR.OpenFeature/ContextR.OpenFeature.csproj
+          )
+
+          for project in "${projects[@]}"; do
+            dotnet pack "$project" \
+              --configuration Release \
+              --no-build \
+              -p:PackageVersion=${{ steps.version.outputs.value }} \
+              -o ./artifacts
+          done
 
       - name: Push packages to NuGet
         run: dotnet nuget push "./artifacts/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source "${{ env.NUGET_SOURCE }}" --skip-duplicate
