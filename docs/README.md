@@ -14,6 +14,7 @@ If you publish with GitHub Pages + MkDocs, use [Docs Home](index.md) as the site
 ## Core and Architecture
 
 - [Architecture](ARCHITECTURE.md)
+- [Domain Configuration](DomainConfiguration.md)
 - [Context Resolution](ContextR.Resolution.md)
 - [Propagation Mapping](ContextR.Propagation.md)
 

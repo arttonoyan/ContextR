@@ -125,6 +125,7 @@ ContextR makes context flow reliable across async code, HTTP, gRPC, and backgrou
 - [Usage Cookbook](docs/UsageCookbook.md)
 - [Q&A / FAQ](docs/FAQ.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Domain Configuration](docs/DomainConfiguration.md)
 - [Context Resolution](docs/ContextR.Resolution.md)
 - [Propagation Mapping](docs/ContextR.Propagation.md)
 - [Inline JSON Strategy](docs/ContextR.Propagation.InlineJson.md)
