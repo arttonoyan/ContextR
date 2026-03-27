@@ -96,7 +96,7 @@ public sealed class MapPropertyRegistrationTests
     public void MapProperty_CanBeChained_WithTransportExtensions()
     {
         var services = new ServiceCollection();
-        IContextRegistrationBuilder<TestContext>? capturedBuilder = null;
+        IContextTypeBuilder<TestContext>? capturedBuilder = null;
 
         services.AddContextR(builder =>
         {

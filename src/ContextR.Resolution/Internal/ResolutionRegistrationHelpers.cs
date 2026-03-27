@@ -4,7 +4,7 @@ namespace ContextR.Resolution.Internal;
 
 internal static class ResolutionRegistrationHelpers
 {
-    internal static void RegisterResolver<TContext, TResolver>(IContextRegistrationBuilder<TContext> builder)
+    internal static void RegisterResolver<TContext, TResolver>(IContextTypeBuilder<TContext> builder)
         where TContext : class
         where TResolver : class, IContextResolver<TContext>
     {
@@ -14,7 +14,7 @@ internal static class ResolutionRegistrationHelpers
     }
 
     internal static void RegisterResolver<TContext>(
-        IContextRegistrationBuilder<TContext> builder,
+        IContextTypeBuilder<TContext> builder,
         Func<ContextResolutionContext, TContext?> resolver)
         where TContext : class
     {
@@ -23,7 +23,7 @@ internal static class ResolutionRegistrationHelpers
     }
 
     internal static void RegisterResolver<TContext>(
-        IContextRegistrationBuilder<TContext> builder,
+        IContextTypeBuilder<TContext> builder,
         Func<IServiceProvider, IContextResolver<TContext>> factory)
         where TContext : class
     {
@@ -31,7 +31,7 @@ internal static class ResolutionRegistrationHelpers
         registry.TryAdd(builder.Domain, factory);
     }
 
-    internal static void RegisterResolutionPolicy<TContext, TPolicy>(IContextRegistrationBuilder<TContext> builder)
+    internal static void RegisterResolutionPolicy<TContext, TPolicy>(IContextTypeBuilder<TContext> builder)
         where TContext : class
         where TPolicy : class, IContextResolutionPolicy<TContext>
     {
@@ -41,7 +41,7 @@ internal static class ResolutionRegistrationHelpers
     }
 
     internal static void RegisterResolutionPolicy<TContext>(
-        IContextRegistrationBuilder<TContext> builder,
+        IContextTypeBuilder<TContext> builder,
         Func<ContextResolutionPolicyContext<TContext>, ContextResolutionResult<TContext>> policy)
         where TContext : class
     {
@@ -50,7 +50,7 @@ internal static class ResolutionRegistrationHelpers
     }
 
     internal static void RegisterResolutionPolicy<TContext>(
-        IContextRegistrationBuilder<TContext> builder,
+        IContextTypeBuilder<TContext> builder,
         Func<IServiceProvider, IContextResolutionPolicy<TContext>> factory)
         where TContext : class
     {

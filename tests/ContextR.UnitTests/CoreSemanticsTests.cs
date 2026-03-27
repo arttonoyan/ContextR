@@ -12,7 +12,7 @@ public sealed class CoreSemanticsTests
         var writer = provider.GetRequiredService<IContextWriter>();
 
         writer.SetContext(new UserContext("user-a"));
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         writer.SetContext(new UserContext("user-b"));
 
@@ -120,7 +120,7 @@ public sealed class CoreSemanticsTests
         writer.SetContext(new UserContext("user-a"));
         writer.SetContext(new TenantContext("tenant-a"));
 
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
         Assert.Equal("user-a", snapshot.GetContext<UserContext>()?.UserId);
         Assert.Equal("tenant-a", snapshot.GetContext<TenantContext>()?.TenantId);
 

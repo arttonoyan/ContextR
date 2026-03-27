@@ -25,7 +25,7 @@ public interface IContextAccessor
     /// Captures a snapshot of all current ambient context values (across all domains).
     /// </summary>
     /// <returns>An immutable snapshot of current ambient context values.</returns>
-    IContextSnapshot CreateSnapshot();
+    IContextSnapshot CaptureSnapshot();
 
     /// <summary>
     /// Creates a snapshot containing only the provided context value in the default domain,

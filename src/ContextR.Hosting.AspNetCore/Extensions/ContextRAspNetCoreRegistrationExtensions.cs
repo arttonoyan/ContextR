@@ -8,7 +8,7 @@ namespace ContextR.Hosting.AspNetCore;
 
 /// <summary>
 /// Extension methods for configuring ASP.NET Core context extraction
-/// on <see cref="IContextRegistrationBuilder{TContext}"/>.
+/// on <see cref="IContextTypeBuilder{TContext}"/>.
 /// </summary>
 public static class ContextRAspNetCoreRegistrationExtensions
 {
@@ -25,8 +25,8 @@ public static class ContextRAspNetCoreRegistrationExtensions
     /// <typeparam name="TContext">The context type to extract.</typeparam>
     /// <param name="builder">The context registration builder.</param>
     /// <returns>The same builder for fluent chaining.</returns>
-    public static IContextRegistrationBuilder<TContext> UseAspNetCore<TContext>(
-        this IContextRegistrationBuilder<TContext> builder)
+    public static IContextTypeBuilder<TContext> UseAspNetCore<TContext>(
+        this IContextTypeBuilder<TContext> builder)
         where TContext : class
     {
         return UseAspNetCore(builder, _ => { });
@@ -39,8 +39,8 @@ public static class ContextRAspNetCoreRegistrationExtensions
     /// <param name="builder">The context registration builder.</param>
     /// <param name="configure">Configuration callback.</param>
     /// <returns>The same builder for fluent chaining.</returns>
-    public static IContextRegistrationBuilder<TContext> UseAspNetCore<TContext>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> UseAspNetCore<TContext>(
+        this IContextTypeBuilder<TContext> builder,
         Action<ContextRAspNetCoreOptions<TContext>> configure)
         where TContext : class
     {
@@ -66,8 +66,8 @@ public static class ContextRAspNetCoreRegistrationExtensions
     /// Callback that receives <see cref="IServiceProvider"/> and mutable options instance.
     /// </param>
     /// <returns>The same builder for fluent chaining.</returns>
-    public static IContextRegistrationBuilder<TContext> UseAspNetCore<TContext>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> UseAspNetCore<TContext>(
+        this IContextTypeBuilder<TContext> builder,
         Action<IServiceProvider, ContextRAspNetCoreOptions<TContext>> configure)
         where TContext : class
     {
@@ -93,8 +93,8 @@ public static class ContextRAspNetCoreRegistrationExtensions
     /// Factory that builds options using an <see cref="IServiceProvider"/> (for logger/services access).
     /// </param>
     /// <returns>The same builder for fluent chaining.</returns>
-    public static IContextRegistrationBuilder<TContext> UseAspNetCore<TContext>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> UseAspNetCore<TContext>(
+        this IContextTypeBuilder<TContext> builder,
         Func<IServiceProvider, ContextRAspNetCoreOptions<TContext>> configureFactory)
         where TContext : class
     {

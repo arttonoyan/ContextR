@@ -115,7 +115,7 @@ public interface IContextSnapshot
 **Method 1: From current ambient state**
 
 ```csharp
-var snapshot = _accessor.CreateSnapshot();
+var snapshot = _accessor.CaptureSnapshot();
 ```
 
 Iterates all `AsyncLocal` slots, copies non-null values into an immutable dictionary.
@@ -287,7 +287,7 @@ This prevents a runtime trap: if you register `AddDomain("web-api", ...)` but fo
 
 ### How domains interact with snapshots
 
-`CreateSnapshot()` captures **all** slots across all domains. The snapshot's parameterless `GetContext<T>()` uses the `DefaultDomain` that was resolved when the `DefaultContextAccessor` was constructed, ensuring consistent behavior between the accessor and its snapshots.
+`CaptureSnapshot()` captures **all** slots across all domains. The snapshot's parameterless `GetContext<T>()` uses the `DefaultDomain` that was resolved when the `DefaultContextAccessor` was constructed, ensuring consistent behavior between the accessor and its snapshots.
 
 ---
 
@@ -348,7 +348,7 @@ graph TD
     Accessor --> DCA["DefaultContextAccessor\n(internal, implements both)"]
     Writer --> DCA
 
-    DCA -- "CreateSnapshot()" --> Capture["Captures all AsyncLocal\nvalues into immutable\nDictionary(ContextKey, object)"]
+    DCA -- "CaptureSnapshot()" --> Capture["Captures all AsyncLocal\nvalues into immutable\nDictionary(ContextKey, object)"]
 
     Capture --> Snapshot["IContextSnapshot\n(scoped service)"]
 
@@ -372,7 +372,7 @@ sequenceDiagram
     Writer->>Store: Set(null, context)
     Note over Store: AsyncLocal = "alice"
 
-    App->>Acc: 2. CreateSnapshot()
+    App->>Acc: 2. CaptureSnapshot()
     Acc->>Store: CaptureAll()
     Store-->>Snap: new ContextSnapshot(values)
     Note over Snap: Captured: "alice"
@@ -459,7 +459,7 @@ Propagators are registered in DI as singletons. There are two registration paths
 
 ```mermaid
 flowchart TD
-    A["IContextRegistrationBuilder<T>"] --> B{"Registration path"}
+    A["IContextTypeBuilder<T>"] --> B{"Registration path"}
     B -- "MapProperty" --> C["ContextR.Propagation\n registers IPropertyMapping<T>\n+ MappingContextPropagator<T>"]
     B -- "UsePropagator<T,P>" --> D["ContextR.Propagation\nregisters P as IContextPropagator<T>"]
 
@@ -512,12 +512,12 @@ sequenceDiagram
 
 | File | Role |
 |------|------|
-| `IContextAccessor.cs` | Read interface: `GetContext(Type)`, `GetContext(domain, Type)`, `CreateSnapshot()`, `CreateSnapshot(Type, object)`, `CreateSnapshot(domain, Type, object)` |
+| `IContextAccessor.cs` | Read interface: `GetContext(Type)`, `GetContext(domain, Type)`, `CaptureSnapshot()`, `CreateSnapshot(Type, object)`, `CreateSnapshot(domain, Type, object)` |
 | `IContextWriter.cs` | Write interface: `SetContext(Type, object?)`, `SetContext(domain, Type, object?)` |
 | `IContextSnapshot.cs` | Snapshot interface: `GetContext(Type)`, `GetContext(domain, Type)`, `BeginScope()` |
 | `IContextBuilder.cs` | Builder interface: `Add<T>()`, `AddDomain()`, `AddDomainPolicy()` |
 | `IDomainContextBuilder.cs` | Domain builder interface: `Add<T>()` |
-| `IContextRegistrationBuilder<T>.cs` | Per-type configuration surface; transport and propagation packages extend it |
+| `IContextTypeBuilder<T>.cs` | Per-type configuration surface; transport and propagation packages extend it |
 | `ContextDomainPolicy.cs` | Policy class with `DefaultDomainSelector` property |
 
 #### Extensions
@@ -540,7 +540,7 @@ sequenceDiagram
 | `ContextHolder.cs` | Wrapper class with `object? Context` field. Enables shared-reference clearing by `Set`. |
 | `ContextBuilder.cs` | Internal `IContextBuilder` implementation. Tracks registrations and validates configuration. |
 | `DomainContextBuilder.cs` | Internal `IDomainContextBuilder` implementation. |
-| `ContextRegistrationBuilder<T>.cs` | Internal `IContextRegistrationBuilder<T>` implementation. Exposes `Services` and `Domain` for transport extensions. |
+| `ContextRegistrationBuilder<T>.cs` | Internal `IContextTypeBuilder<T>` implementation. Exposes `Services` and `Domain` for transport extensions. |
 
 ### ContextR.Propagation
 
@@ -636,9 +636,9 @@ They serve different roles.
 
 Yes. `BeginScope()` uses `SetRaw()` which replaces `AsyncLocal.Value` per-`ExecutionContext` (copy-on-write). If downstream code calls `SetContext()` inside a scope, the mutation is isolated. The parent flow's context is not affected because `Dispose()` restores using `SetRaw()`.
 
-### Q: Is `CaptureAll()` / `CreateSnapshot()` safe under parallel calls?
+### Q: Is `CaptureAll()` / `CaptureSnapshot()` safe under parallel calls?
 
-Yes. `CaptureAll()` iterates `ConcurrentDictionary` (lock-free enumeration) and reads `AsyncLocal.Value` for each entry (per-`ExecutionContext` read). Two threads calling `CreateSnapshot()` simultaneously read from their own independent slots. They cannot interfere with each other.
+Yes. `CaptureAll()` iterates `ConcurrentDictionary` (lock-free enumeration) and reads `AsyncLocal.Value` for each entry (per-`ExecutionContext` read). Two threads calling `CaptureSnapshot()` simultaneously read from their own independent slots. They cannot interfere with each other.
 
 ### Q: Can I nest multiple `BeginScope()` calls?
 
@@ -663,7 +663,7 @@ The snapshot values will remain active in the current `AsyncLocal` for the lifet
 
 ### Q: What is the performance cost of snapshots?
 
-`CreateSnapshot()` iterates the `ConcurrentDictionary` and copies key-value pairs into a new `Dictionary<ContextKey, object>`. For a typical application with 1-3 context types and 1-2 domains, this is a handful of dictionary operations. The snapshot object itself is a small allocation.
+`CaptureSnapshot()` iterates the `ConcurrentDictionary` and copies key-value pairs into a new `Dictionary<ContextKey, object>`. For a typical application with 1-3 context types and 1-2 domains, this is a handful of dictionary operations. The snapshot object itself is a small allocation.
 
 `BeginScope()` does the same amount of work: one dictionary read (to save previous state) and one `AsyncLocal.Value` assignment per context key.
 

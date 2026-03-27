@@ -10,8 +10,8 @@ public static class ContextRChunkingRegistrationExtensions
     /// <summary>
     /// Registers default UTF-8-safe chunking strategy for mapped payloads.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseChunkingPayloads<TContext>(
-        this IContextRegistrationBuilder<TContext> builder)
+    public static IContextTypeBuilder<TContext> UseChunkingPayloads<TContext>(
+        this IContextTypeBuilder<TContext> builder)
         where TContext : class
     {
         ArgumentNullException.ThrowIfNull(builder);

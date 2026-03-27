@@ -297,7 +297,7 @@ writer.SetContext(new UserContext { UserId = "default-user" });
 writer.SetContext("web-api", new UserContext { UserId = "web-user" });
 writer.SetContext("grpc", new UserContext { UserId = "grpc-user" });
 
-var snapshot = accessor.CreateSnapshot();
+var snapshot = accessor.CaptureSnapshot();
 
 // Snapshot contains all three values
 snapshot.GetContext<UserContext>();               // "default-user"
@@ -334,7 +334,7 @@ accessor.GetContext<UserContext>("web-api");       // "parent" (restored)
 ### Background processing with domain context
 
 ```csharp
-var snapshot = accessor.CreateSnapshot();
+var snapshot = accessor.CaptureSnapshot();
 
 _ = Task.Run(async () =>
 {
@@ -589,7 +589,7 @@ builder.Services.AddContextR(ctx =>
 public async Task EnqueueWork(IContextAccessor accessor)
 {
     // Capture all domain values
-    var snapshot = accessor.CreateSnapshot();
+    var snapshot = accessor.CaptureSnapshot();
 
     await _queue.EnqueueAsync(async () =>
     {

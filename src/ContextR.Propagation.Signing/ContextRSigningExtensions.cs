@@ -14,8 +14,8 @@ public static class ContextRSigningExtensions
     /// Provide keys inline via <see cref="SigningOptions.Key"/> or <see cref="SigningOptions.AddKey"/>,
     /// or register an <see cref="ISigningKeyProvider"/> in DI and set <see cref="SigningOptions.KeyId"/>.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseContextSigning<TContext>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> UseContextSigning<TContext>(
+        this IContextTypeBuilder<TContext> builder,
         Action<SigningOptions> configure)
         where TContext : class
     {

@@ -46,7 +46,7 @@ public sealed class InlineJsonRegistrationExtensionsTests
     [Fact]
     public void UseInlineJsonPayloads_ThrowsWhenBuilderIsNull()
     {
-        IContextRegistrationBuilder<TestContext>? builder = null;
+        IContextTypeBuilder<TestContext>? builder = null;
 
         Assert.Throws<ArgumentNullException>(() =>
             ContextRInlineJsonRegistrationExtensions.UseInlineJsonPayloads<TestContext>(builder!));
@@ -55,7 +55,7 @@ public sealed class InlineJsonRegistrationExtensionsTests
     [Fact]
     public void UseInlineJsonPayloads_ThrowsWhenConfigureIsNull()
     {
-        IContextRegistrationBuilder<TestContext>? captured = null;
+        IContextTypeBuilder<TestContext>? captured = null;
         var services = new ServiceCollection();
 
         services.AddContextR(builder =>

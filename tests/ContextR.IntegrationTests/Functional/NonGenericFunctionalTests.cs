@@ -18,7 +18,7 @@ public sealed class NonGenericFunctionalTests
         Assert.Equal("step1", ((UserContext)accessor.GetContext(typeof(UserContext))!).UserId);
 
         writer.SetContext(typeof(TenantContext), new TenantContext("tenant1"));
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         writer.SetContext(typeof(UserContext), new UserContext("step2"));
         Assert.Equal("step2", ((UserContext)accessor.GetContext(typeof(UserContext))!).UserId);
@@ -279,7 +279,7 @@ public sealed class NonGenericFunctionalTests
         var writer = provider.GetRequiredService<IContextWriter>();
 
         writer.SetContext(typeof(UserContext), new UserContext("user-a"));
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         writer.SetContext(typeof(UserContext), new UserContext("user-b"));
 

@@ -14,11 +14,11 @@ internal sealed class DomainContextBuilder : IDomainContextBuilder
         _services = services;
     }
 
-    public IDomainContextBuilder Add<TContext>(Action<IContextRegistrationBuilder<TContext>>? configure = null)
+    public IDomainContextBuilder Add<TContext>(Action<IContextTypeBuilder<TContext>>? configure = null)
         where TContext : class
     {
         _registeredTypes.Add(typeof(TContext));
-        var regBuilder = new ContextRegistrationBuilder<TContext>(_services, _domain);
+        var regBuilder = new ContextTypeBuilder<TContext>(_services, _domain);
         configure?.Invoke(regBuilder);
         return this;
     }

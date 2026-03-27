@@ -10,7 +10,7 @@ public sealed class ContextRGrpcExtensionsTests
     public void UseGlobalGrpcPropagation_IsChainable_AndRegistersInterceptorOptions()
     {
         var services = new ServiceCollection();
-        IContextRegistrationBuilder<TestContext>? capturedBuilder = null;
+        IContextTypeBuilder<TestContext>? capturedBuilder = null;
 
         services.AddContextR(ctx => ctx.Add<TestContext>(reg =>
         {

@@ -8,7 +8,7 @@ public sealed class StrategyPolicyRegistryAndRegistrationTests
     public void UseStrategyPolicy_Delegate_Throws_WhenPolicyIsNull()
     {
         var services = new ServiceCollection();
-        IContextRegistrationBuilder<TestContext>? capturedBuilder = null;
+        IContextTypeBuilder<TestContext>? capturedBuilder = null;
         services.AddContextR(builder => builder.Add<TestContext>(reg => capturedBuilder = reg));
 
         Assert.NotNull(capturedBuilder);
@@ -21,7 +21,7 @@ public sealed class StrategyPolicyRegistryAndRegistrationTests
     public void UseStrategyPolicy_Factory_Throws_WhenFactoryIsNull()
     {
         var services = new ServiceCollection();
-        IContextRegistrationBuilder<TestContext>? capturedBuilder = null;
+        IContextTypeBuilder<TestContext>? capturedBuilder = null;
         services.AddContextR(builder => builder.Add<TestContext>(reg => capturedBuilder = reg));
 
         Assert.NotNull(capturedBuilder);
@@ -34,7 +34,7 @@ public sealed class StrategyPolicyRegistryAndRegistrationTests
     public void OnPropagationFailure_Throws_WhenHandlerIsNull()
     {
         var services = new ServiceCollection();
-        IContextRegistrationBuilder<TestContext>? capturedBuilder = null;
+        IContextTypeBuilder<TestContext>? capturedBuilder = null;
         services.AddContextR(builder => builder.Add<TestContext>(reg => capturedBuilder = reg));
 
         Assert.NotNull(capturedBuilder);

@@ -8,8 +8,8 @@ public static class ContextRResolutionRegistrationExtensions
     /// <summary>
     /// Opens a resolution-specific fluent scope for this context registration.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> AddResolution<TContext>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> AddResolution<TContext>(
+        this IContextTypeBuilder<TContext> builder,
         Action<IResolutionBuilder<TContext>> configure)
         where TContext : class
     {
@@ -24,8 +24,8 @@ public static class ContextRResolutionRegistrationExtensions
     /// <summary>
     /// Registers a typed resolver implementation.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseResolver<TContext, TResolver>(
-        this IContextRegistrationBuilder<TContext> builder)
+    public static IContextTypeBuilder<TContext> UseResolver<TContext, TResolver>(
+        this IContextTypeBuilder<TContext> builder)
         where TContext : class
         where TResolver : class, IContextResolver<TContext>
     {
@@ -36,8 +36,8 @@ public static class ContextRResolutionRegistrationExtensions
     /// <summary>
     /// Registers a resolver delegate.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseResolver<TContext>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> UseResolver<TContext>(
+        this IContextTypeBuilder<TContext> builder,
         Func<ContextResolutionContext, TContext?> resolver)
         where TContext : class
     {
@@ -49,8 +49,8 @@ public static class ContextRResolutionRegistrationExtensions
     /// <summary>
     /// Registers a resolver factory resolved from DI.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseResolver<TContext>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> UseResolver<TContext>(
+        this IContextTypeBuilder<TContext> builder,
         Func<IServiceProvider, IContextResolver<TContext>> factory)
         where TContext : class
     {
@@ -62,8 +62,8 @@ public static class ContextRResolutionRegistrationExtensions
     /// <summary>
     /// Registers a typed resolution policy implementation.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseResolutionPolicy<TContext, TPolicy>(
-        this IContextRegistrationBuilder<TContext> builder)
+    public static IContextTypeBuilder<TContext> UseResolutionPolicy<TContext, TPolicy>(
+        this IContextTypeBuilder<TContext> builder)
         where TContext : class
         where TPolicy : class, IContextResolutionPolicy<TContext>
     {
@@ -74,8 +74,8 @@ public static class ContextRResolutionRegistrationExtensions
     /// <summary>
     /// Registers a resolution policy delegate.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseResolutionPolicy<TContext>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> UseResolutionPolicy<TContext>(
+        this IContextTypeBuilder<TContext> builder,
         Func<ContextResolutionPolicyContext<TContext>, ContextResolutionResult<TContext>> policy)
         where TContext : class
     {
@@ -87,8 +87,8 @@ public static class ContextRResolutionRegistrationExtensions
     /// <summary>
     /// Registers a resolution policy factory resolved from DI.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseResolutionPolicy<TContext>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> UseResolutionPolicy<TContext>(
+        this IContextTypeBuilder<TContext> builder,
         Func<IServiceProvider, IContextResolutionPolicy<TContext>> factory)
         where TContext : class
     {

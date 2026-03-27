@@ -15,8 +15,8 @@ public static class ContextRPropagationRegistrationExtensions
     /// <typeparam name="TPropagator">The propagator implementation type.</typeparam>
     /// <param name="builder">The context registration builder.</param>
     /// <returns>The same builder for fluent chaining.</returns>
-    public static IContextRegistrationBuilder<TContext> UsePropagator<TContext, TPropagator>(
-        this IContextRegistrationBuilder<TContext> builder)
+    public static IContextTypeBuilder<TContext> UsePropagator<TContext, TPropagator>(
+        this IContextTypeBuilder<TContext> builder)
         where TContext : class
         where TPropagator : class, IContextPropagator<TContext>
     {
@@ -29,8 +29,8 @@ public static class ContextRPropagationRegistrationExtensions
     /// <summary>
     /// Registers a payload serializer strategy for mapped properties of <typeparamref name="TContext"/>.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UsePayloadSerializer<TContext, TSerializer>(
-        this IContextRegistrationBuilder<TContext> builder)
+    public static IContextTypeBuilder<TContext> UsePayloadSerializer<TContext, TSerializer>(
+        this IContextTypeBuilder<TContext> builder)
         where TContext : class
         where TSerializer : class, IContextPayloadSerializer<TContext>
     {
@@ -43,8 +43,8 @@ public static class ContextRPropagationRegistrationExtensions
     /// <summary>
     /// Registers a transport policy strategy for mapped properties of <typeparamref name="TContext"/>.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseTransportPolicy<TContext, TPolicy>(
-        this IContextRegistrationBuilder<TContext> builder)
+    public static IContextTypeBuilder<TContext> UseTransportPolicy<TContext, TPolicy>(
+        this IContextTypeBuilder<TContext> builder)
         where TContext : class
         where TPolicy : class, IContextTransportPolicy<TContext>
     {
@@ -57,8 +57,8 @@ public static class ContextRPropagationRegistrationExtensions
     /// <summary>
     /// Registers a runtime strategy policy implementation.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseStrategyPolicy<TContext, TPolicy>(
-        this IContextRegistrationBuilder<TContext> builder)
+    public static IContextTypeBuilder<TContext> UseStrategyPolicy<TContext, TPolicy>(
+        this IContextTypeBuilder<TContext> builder)
         where TContext : class
         where TPolicy : class, IContextPropagationStrategyPolicy<TContext>
     {
@@ -74,8 +74,8 @@ public static class ContextRPropagationRegistrationExtensions
     /// <summary>
     /// Registers a runtime strategy policy delegate.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseStrategyPolicy<TContext>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> UseStrategyPolicy<TContext>(
+        this IContextTypeBuilder<TContext> builder,
         Func<ContextPropagationStrategyPolicyContext, ContextOversizeBehavior> policy)
         where TContext : class
     {
@@ -91,8 +91,8 @@ public static class ContextRPropagationRegistrationExtensions
     /// <summary>
     /// Registers a runtime strategy policy delegate factory resolved from DI.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseStrategyPolicy<TContext>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> UseStrategyPolicy<TContext>(
+        this IContextTypeBuilder<TContext> builder,
         Func<IServiceProvider, Func<ContextPropagationStrategyPolicyContext, ContextOversizeBehavior>> factory)
         where TContext : class
     {
@@ -108,8 +108,8 @@ public static class ContextRPropagationRegistrationExtensions
     /// <summary>
     /// Registers a propagation failure handler implementation.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> OnPropagationFailure<TContext, THandler>(
-        this IContextRegistrationBuilder<TContext> builder)
+    public static IContextTypeBuilder<TContext> OnPropagationFailure<TContext, THandler>(
+        this IContextTypeBuilder<TContext> builder)
         where TContext : class
         where THandler : class, IContextPropagationFailureHandler<TContext>
     {
@@ -125,8 +125,8 @@ public static class ContextRPropagationRegistrationExtensions
     /// <summary>
     /// Registers a propagation failure handler delegate.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> OnPropagationFailure<TContext>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> OnPropagationFailure<TContext>(
+        this IContextTypeBuilder<TContext> builder,
         Func<PropagationFailureContext, PropagationFailureAction> handler)
         where TContext : class
     {

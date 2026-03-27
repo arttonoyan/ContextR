@@ -117,5 +117,5 @@ gRPC metadata is still header-based and constrained by transport/proxy limits. K
 | `ContextPropagationInterceptor.cs` | Client interceptor that injects context into outgoing metadata |
 | `ContextInterceptor.cs` | Server interceptor that extracts metadata and writes ambient context |
 | `GrpcMetadataContextPropagatorExtensions.cs` | Metadata adapter helpers for `IContextPropagator<T>` |
-| `Extensions/ContextRGrpcRegistrationExtensions.cs` | `UseGlobalGrpcPropagation()` on `IContextRegistrationBuilder<T>` |
+| `Extensions/ContextRGrpcRegistrationExtensions.cs` | `UseGlobalGrpcPropagation()` on `IContextTypeBuilder<T>` |
 | `Extensions/ContextRGrpcClientBuilderExtensions.cs` | Per-client gRPC extensions on `IHttpClientBuilder` / `GrpcClientFactoryOptions` |

@@ -132,7 +132,7 @@ The handler reads from `IContextAccessor` (live `AsyncLocal`), not from `IContex
 For background jobs or `Task.Run` scenarios, ensure a scope is active before making HTTP calls:
 
 ```csharp
-var snapshot = _accessor.CreateSnapshot();
+var snapshot = _accessor.CaptureSnapshot();
 
 _ = Task.Run(async () =>
 {
@@ -166,5 +166,5 @@ HTTP infrastructure has practical header-size limits. Keep payloads small, and u
 | File | Role |
 |---|---|
 | `ContextPropagationHandler.cs` | `DelegatingHandler` that injects context into outgoing HTTP request headers |
-| `Extensions/ContextRHttpRegistrationExtensions.cs` | `UseGlobalHttpPropagation()` extension on `IContextRegistrationBuilder<T>` |
+| `Extensions/ContextRHttpRegistrationExtensions.cs` | `UseGlobalHttpPropagation()` extension on `IContextTypeBuilder<T>` |
 | `Extensions/ContextRHttpClientBuilderExtensions.cs` | `AddContextRHandler<T>()` extension on `IHttpClientBuilder` |
