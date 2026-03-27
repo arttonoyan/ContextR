@@ -513,7 +513,7 @@ sequenceDiagram
 | File | Role |
 |------|------|
 | `IContextAccessor.cs` | Read interface: `GetContext(Type)`, `GetContext(domain, Type)`, `CaptureSnapshot()`, `CreateSnapshot(Type, object)`, `CreateSnapshot(domain, Type, object)` |
-| `IContextWriter.cs` | Write interface: `SetContext(Type, object?)`, `SetContext(domain, Type, object?)` |
+| `IContextWriter.cs` | Write interface: `SetContext(Type, object?)`, `SetContext(domain, Type, object?)`, `ClearContext(Type)`, `ClearContext(domain, Type)` |
 | `IContextSnapshot.cs` | Snapshot interface: `GetContext(Type)`, `GetContext(domain, Type)`, `BeginScope()` |
 | `IContextBuilder.cs` | Builder interface: `Add<T>()`, `AddDomain()`, `AddDomainPolicy()` |
 | `IDomainContextBuilder.cs` | Domain builder interface: `Add<T>()` |
