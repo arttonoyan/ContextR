@@ -65,7 +65,7 @@ public sealed class ClearContextTests
     }
 
     [Fact]
-    public void ClearContext_DoesNotAffectDefaultWhenClearingDomain()
+    public void ClearContext_DoesNotAffectDomainWhenClearingDefault()
     {
         using var provider = CreateDomainProvider();
         var writer = provider.GetRequiredService<IContextWriter>();
