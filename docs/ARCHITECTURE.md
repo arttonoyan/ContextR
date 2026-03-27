@@ -540,7 +540,7 @@ sequenceDiagram
 | `ContextHolder.cs` | Wrapper class with `object? Context` field. Enables shared-reference clearing by `Set`. |
 | `ContextBuilder.cs` | Internal `IContextBuilder` implementation. Tracks registrations and validates configuration. |
 | `DomainContextBuilder.cs` | Internal `IDomainContextBuilder` implementation. |
-| `ContextRegistrationBuilder<T>.cs` | Internal `IContextTypeBuilder<T>` implementation. Exposes `Services` and `Domain` for transport extensions. |
+| `ContextTypeBuilder<T>.cs` | Internal `IContextTypeBuilder<T>` implementation. Exposes `Services` and `Domain` for transport extensions. |
 
 ### ContextR.Propagation
 
