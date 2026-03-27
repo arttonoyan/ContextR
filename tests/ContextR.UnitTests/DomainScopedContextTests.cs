@@ -226,7 +226,7 @@ public sealed class DomainScopedContextTests
         writer.SetContext(new UserContext("default-user"));
         writer.SetContext("web-api", new UserContext("web-user"));
 
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         writer.SetContext(new UserContext("changed"));
         writer.SetContext("web-api", new UserContext("changed"));
@@ -265,7 +265,7 @@ public sealed class DomainScopedContextTests
         var accessor = provider.GetRequiredService<IContextAccessor>();
 
         writer.SetContext(new UserContext("alice"));
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         Assert.Equal("alice", snapshot.GetContext<UserContext>()?.UserId);
         Assert.Equal("alice", snapshot.GetContext<UserContext>("web-api")?.UserId);
@@ -364,7 +364,7 @@ public sealed class DomainScopedContextTests
         });
 
         var accessor = provider.GetRequiredService<IContextAccessor>();
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         var ex = Assert.Throws<InvalidOperationException>(
             () => snapshot.GetRequiredContext<UserContext>("web-api"));
@@ -424,7 +424,7 @@ public sealed class DomainScopedContextTests
         Assert.Equal("u1", accessor.GetContext<UserContext>()?.UserId);
         Assert.Equal("t1", accessor.GetContext<TenantContext>()?.TenantId);
 
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
         writer.SetContext(new UserContext("u2"));
 
         Assert.Equal("u1", snapshot.GetContext<UserContext>()?.UserId);
@@ -563,7 +563,7 @@ public sealed class DomainScopedContextTests
         var accessor = provider.GetRequiredService<IContextAccessor>();
 
         writer.SetContext(new UserContext("default-only"));
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         Assert.Equal("default-only", snapshot.GetContext<UserContext>()?.UserId);
         Assert.Null(snapshot.GetContext<UserContext>("web-api"));
@@ -583,7 +583,7 @@ public sealed class DomainScopedContextTests
         var accessor = provider.GetRequiredService<IContextAccessor>();
 
         writer.SetContext("web-api", new UserContext("web-user"));
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         Assert.Equal("web-user", snapshot.GetRequiredContext<UserContext>("web-api").UserId);
     }
@@ -664,7 +664,7 @@ public sealed class DomainScopedContextTests
         writer.SetContext(new UserContext("default"));
         writer.SetContext("web-api", new UserContext("web"));
 
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         writer.SetContext(new UserContext("changed-default"));
         writer.SetContext("web-api", new UserContext("changed-web"));
@@ -688,7 +688,7 @@ public sealed class DomainScopedContextTests
         writer.SetContext(new UserContext("parent-default"));
         writer.SetContext("web-api", new UserContext("parent-web"));
 
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         writer.SetContext(new UserContext("changed-default"));
         writer.SetContext("web-api", new UserContext("changed-web"));

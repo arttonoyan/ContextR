@@ -96,7 +96,7 @@ public sealed class InternalTypeTests
     {
         var accessor = new StubContextAccessor();
 
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         Assert.Null(snapshot.GetContext<UserContext>());
     }
@@ -129,7 +129,7 @@ public sealed class InternalTypeTests
         public object? GetContext(Type contextType) => null;
         public object? GetContext(string domain, Type contextType) => null;
 
-        public IContextSnapshot CreateSnapshot() =>
+        public IContextSnapshot CaptureSnapshot() =>
             new ContextSnapshot(new Dictionary<ContextKey, object>(), null);
 
         public IContextSnapshot CreateSnapshot(Type contextType, object context) =>

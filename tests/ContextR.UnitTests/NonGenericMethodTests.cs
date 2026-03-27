@@ -236,7 +236,7 @@ public sealed class NonGenericMethodTests
         writer.SetContext("web-api", typeof(UserContext), new UserContext("web-user"));
         writer.SetContext(typeof(TenantContext), new TenantContext("acme"));
 
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         writer.SetContext(typeof(UserContext), new UserContext("changed"));
 
@@ -251,7 +251,7 @@ public sealed class NonGenericMethodTests
         using var provider = CreateProvider();
         var accessor = provider.GetRequiredService<IContextAccessor>();
 
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         Assert.Null(snapshot.GetContext(typeof(UserContext)));
     }
@@ -262,7 +262,7 @@ public sealed class NonGenericMethodTests
         using var provider = CreateDomainProvider();
         var accessor = provider.GetRequiredService<IContextAccessor>();
 
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         Assert.Null(snapshot.GetContext("web-api", typeof(UserContext)));
     }
@@ -275,7 +275,7 @@ public sealed class NonGenericMethodTests
         var accessor = provider.GetRequiredService<IContextAccessor>();
 
         writer.SetContext(new UserContext("alice"));
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         var viaGeneric = snapshot.GetContext<UserContext>();
         var viaNonGeneric = snapshot.GetContext(typeof(UserContext));

@@ -99,7 +99,7 @@ public sealed class MappingDslTests
     public void Map_Throws_WhenConfigureIsNull()
     {
         var services = new ServiceCollection();
-        IContextRegistrationBuilder<TestContext>? captured = null;
+        IContextTypeBuilder<TestContext>? captured = null;
 
         services.AddContextR(builder =>
         {

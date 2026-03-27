@@ -157,7 +157,7 @@ ctx.Add<UserContext>(reg => reg
 ## Pattern: background processing with snapshots
 
 ```csharp
-var snapshot = accessor.CreateSnapshot();
+var snapshot = accessor.CaptureSnapshot();
 
 _ = Task.Run(async () =>
 {

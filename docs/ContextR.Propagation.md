@@ -383,7 +383,7 @@ Internal `IContextPropagator<TContext>` implementation. Collects all `IPropertyM
 
 | File | Role |
 |---|---|
-| `ContextRPropagationExtensions.cs` | `MapProperty` + `Map` DSL entry points on `IContextRegistrationBuilder<T>` |
+| `ContextRPropagationExtensions.cs` | `MapProperty` + `Map` DSL entry points on `IContextTypeBuilder<T>` |
 | `MappingDslBuilders.cs` | DSL builders (`ContextMapBuilder`, `ContextMapPropertyBuilder`, `PropertyRequirement`) |
 | `Internal/IPropertyMapping.cs` | Internal interface for single property mapping |
 | `Internal/PropertyMapping.cs` | Expression-compiled property accessor and parser |

@@ -19,7 +19,7 @@ public interface IContextBuilder
     /// <typeparam name="TContext">The context type to register.</typeparam>
     /// <param name="configure">Optional context-specific configuration callback.</param>
     /// <returns>The same builder for fluent chaining.</returns>
-    IContextBuilder Add<TContext>(Action<IContextRegistrationBuilder<TContext>>? configure = null)
+    IContextBuilder Add<TContext>(Action<IContextTypeBuilder<TContext>>? configure = null)
         where TContext : class;
 
     /// <summary>

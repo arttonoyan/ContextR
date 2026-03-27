@@ -9,7 +9,7 @@ public sealed class ExtensionGuardClauseTests
     {
         IContextAccessor? accessor = null;
 
-        Assert.Throws<NullReferenceException>(() => accessor!.CreateSnapshot());
+        Assert.Throws<NullReferenceException>(() => accessor!.CaptureSnapshot());
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public sealed class ExtensionGuardClauseTests
     {
         using var provider = CreateProvider();
         var accessor = provider.GetRequiredService<IContextAccessor>();
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         Assert.Throws<InvalidOperationException>(() => snapshot.GetRequiredContext<UserContext>());
     }
@@ -73,7 +73,7 @@ public sealed class ExtensionGuardClauseTests
         var writer = provider.GetRequiredService<IContextWriter>();
 
         writer.SetContext(new UserContext("u1"));
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
         writer.SetContext(new UserContext("u2"));
 
         Assert.Equal("u2", accessor.GetRequiredContext<UserContext>().UserId);

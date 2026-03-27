@@ -16,7 +16,7 @@ public sealed class ResolutionRegistrationExtensionsTests
     public void AddResolution_Throws_WhenConfigureIsNull()
     {
         var services = new ServiceCollection();
-        IContextRegistrationBuilder<TestContext>? capturedBuilder = null;
+        IContextTypeBuilder<TestContext>? capturedBuilder = null;
         services.AddContextR(builder => builder.Add<TestContext>(reg => capturedBuilder = reg));
 
         Assert.NotNull(capturedBuilder);
@@ -28,7 +28,7 @@ public sealed class ResolutionRegistrationExtensionsTests
     public void UseResolver_Throws_WhenDelegateOrFactoryIsNull()
     {
         var services = new ServiceCollection();
-        IContextRegistrationBuilder<TestContext>? capturedBuilder = null;
+        IContextTypeBuilder<TestContext>? capturedBuilder = null;
         services.AddContextR(builder => builder.Add<TestContext>(reg => capturedBuilder = reg));
 
         Assert.NotNull(capturedBuilder);
@@ -42,7 +42,7 @@ public sealed class ResolutionRegistrationExtensionsTests
     public void UseResolutionPolicy_Throws_WhenDelegateOrFactoryIsNull()
     {
         var services = new ServiceCollection();
-        IContextRegistrationBuilder<TestContext>? capturedBuilder = null;
+        IContextTypeBuilder<TestContext>? capturedBuilder = null;
         services.AddContextR(builder => builder.Add<TestContext>(reg => capturedBuilder = reg));
 
         Assert.NotNull(capturedBuilder);

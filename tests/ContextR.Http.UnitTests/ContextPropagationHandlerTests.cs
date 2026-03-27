@@ -135,7 +135,7 @@ public sealed class ContextPropagationHandlerTests
     public void UseGlobalHttpPropagation_IsChainable()
     {
         var services = new ServiceCollection();
-        IContextRegistrationBuilder<TestContext>? capturedBuilder = null;
+        IContextTypeBuilder<TestContext>? capturedBuilder = null;
 
         services.AddContextR(ctx => ctx.Add<TestContext>(reg =>
         {

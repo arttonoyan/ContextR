@@ -228,4 +228,4 @@ In practice, the standard ASP.NET Core DI scope creation happens before middlewa
 |---|---|
 | `Internal/ContextMiddleware.cs` | Middleware that extracts context from `HttpContext.Request.Headers` |
 | `Internal/ContextStartupFilter.cs` | `IStartupFilter` that registers middleware at pipeline start |
-| `Extensions/ContextRAspNetCoreRegistrationExtensions.cs` | `UseAspNetCore()` extension on `IContextRegistrationBuilder<T>` |
+| `Extensions/ContextRAspNetCoreRegistrationExtensions.cs` | `UseAspNetCore()` extension on `IContextTypeBuilder<T>` |

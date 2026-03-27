@@ -34,7 +34,7 @@ public static class ContextRServiceCollectionExtensions
         services.TryAddSingleton<IContextAccessor>(static sp => sp.GetRequiredService<DefaultContextAccessor>());
         services.TryAddSingleton<IContextWriter>(static sp => sp.GetRequiredService<DefaultContextAccessor>());
         services.TryAddScoped<IContextSnapshot>(static sp =>
-            sp.GetRequiredService<IContextAccessor>().CreateSnapshot());
+            sp.GetRequiredService<IContextAccessor>().CaptureSnapshot());
 
         return services;
     }

@@ -10,8 +10,8 @@ public static class ContextRInlineJsonRegistrationExtensions
     /// <summary>
     /// Registers inline JSON serializer and default strict payload policy.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseInlineJsonPayloads<TContext>(
-        this IContextRegistrationBuilder<TContext> builder)
+    public static IContextTypeBuilder<TContext> UseInlineJsonPayloads<TContext>(
+        this IContextTypeBuilder<TContext> builder)
         where TContext : class
     {
         return builder.UseInlineJsonPayloads<TContext>(_ => { });
@@ -20,8 +20,8 @@ public static class ContextRInlineJsonRegistrationExtensions
     /// <summary>
     /// Registers inline JSON serializer and payload policy with custom options.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseInlineJsonPayloads<TContext>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> UseInlineJsonPayloads<TContext>(
+        this IContextTypeBuilder<TContext> builder,
         Action<InlineJsonPayloadOptions> configure)
         where TContext : class
     {

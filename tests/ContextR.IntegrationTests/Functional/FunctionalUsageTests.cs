@@ -267,7 +267,7 @@ public sealed class FunctionalUsageTests
         Assert.Equal("step1", accessor.GetContext<UserContext>()?.UserId);
 
         writer.SetContext(new TenantContext("tenant1"));
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         writer.SetContext(new UserContext("step2"));
         Assert.Equal("step2", accessor.GetContext<UserContext>()?.UserId);
@@ -300,6 +300,196 @@ public sealed class FunctionalUsageTests
         writer.SetContext(new UserContext("after-scope"));
 
         Assert.Equal("before-scope", snapshot.GetContext<UserContext>()?.UserId);
+    }
+
+    [Fact]
+    public async Task BeginScopeExtension_MessageProcessing_PreservesAmbientTenant()
+    {
+        using var provider = CreateProvider();
+        var accessor = provider.GetRequiredService<IContextAccessor>();
+        var writer = provider.GetRequiredService<IContextWriter>();
+
+        writer.SetContext(new TenantContext("tenant-root"));
+
+        var processed = new List<(string UserId, string TenantId)>();
+        foreach (var userId in new[] { "user-1", "user-2", "user-3" })
+        {
+            var item = await Task.Run(() =>
+            {
+                using (accessor.BeginScope(new UserContext(userId)))
+                {
+                    var user = accessor.GetRequiredContext<UserContext>().UserId;
+                    var tenant = accessor.GetRequiredContext<TenantContext>().TenantId;
+                    return (user, tenant);
+                }
+            });
+
+            processed.Add(item);
+        }
+
+        Assert.Equal(
+            new[]
+            {
+                ("user-1", "tenant-root"),
+                ("user-2", "tenant-root"),
+                ("user-3", "tenant-root")
+            },
+            processed);
+        Assert.Equal("tenant-root", accessor.GetContext<TenantContext>()?.TenantId);
+        Assert.Null(accessor.GetContext<UserContext>());
+    }
+
+    [Fact]
+    public void BeginScopeExtension_NestedPipeline_RestoresBoundariesInOrder()
+    {
+        using var provider = CreateProvider();
+        var accessor = provider.GetRequiredService<IContextAccessor>();
+        var writer = provider.GetRequiredService<IContextWriter>();
+
+        writer.SetContext(new UserContext("root-user"));
+        writer.SetContext(new TenantContext("root-tenant"));
+
+        using (accessor.BeginScope(new UserContext("outer-user")))
+        {
+            Assert.Equal("outer-user", accessor.GetRequiredContext<UserContext>().UserId);
+            Assert.Equal("root-tenant", accessor.GetRequiredContext<TenantContext>().TenantId);
+
+            using (accessor.BeginScope(new UserContext("inner-user")))
+            {
+                Assert.Equal("inner-user", accessor.GetRequiredContext<UserContext>().UserId);
+                Assert.Equal("root-tenant", accessor.GetRequiredContext<TenantContext>().TenantId);
+            }
+
+            Assert.Equal("outer-user", accessor.GetRequiredContext<UserContext>().UserId);
+        }
+
+        Assert.Equal("root-user", accessor.GetRequiredContext<UserContext>().UserId);
+        Assert.Equal("root-tenant", accessor.GetRequiredContext<TenantContext>().TenantId);
+    }
+
+    [Fact]
+    public async Task BeginScopeExtension_ConcurrentAsyncFlows_AreIsolated()
+    {
+        using var provider = CreateProvider();
+        var writer = provider.GetRequiredService<IContextWriter>();
+        var accessor = provider.GetRequiredService<IContextAccessor>();
+
+        writer.SetContext(new TenantContext("shared-tenant"));
+
+        var tasks = Enumerable.Range(1, 10).Select(i => Task.Run(() =>
+        {
+            using (accessor.BeginScope(new UserContext($"user-{i}")))
+            {
+                Thread.Sleep(10);
+                var user = accessor.GetContext<UserContext>()?.UserId;
+                var tenant = accessor.GetContext<TenantContext>()?.TenantId;
+                return (user, tenant);
+            }
+        })).ToList();
+
+        var results = await Task.WhenAll(tasks);
+
+        for (var i = 0; i < 10; i++)
+        {
+            Assert.Equal($"user-{i + 1}", results[i].user);
+            Assert.Equal("shared-tenant", results[i].tenant);
+        }
+    }
+
+    [Fact]
+    public async Task BeginScopeExtension_WithDomains_PropagatesAcrossAsyncFlows()
+    {
+        using var provider = CreateDomainProvider();
+        var writer = provider.GetRequiredService<IContextWriter>();
+        var accessor = provider.GetRequiredService<IContextAccessor>();
+
+        writer.SetContext(new UserContext("root-user"));
+        writer.SetContext("web-api", new UserContext("web-root"));
+        writer.SetContext("grpc", new UserContext("grpc-root"));
+
+        var results = new List<(string WebUser, string GrpcUser, string DefaultUser)>();
+        foreach (var userId in new[] { "web-msg-1", "web-msg-2" })
+        {
+            var item = await Task.Run(() =>
+            {
+                using (accessor.BeginScope("web-api", new UserContext(userId)))
+                {
+                    return (
+                        accessor.GetContext<UserContext>("web-api")!.UserId,
+                        accessor.GetContext<UserContext>("grpc")!.UserId,
+                        accessor.GetContext<UserContext>()!.UserId
+                    );
+                }
+            });
+            results.Add(item);
+        }
+
+        Assert.Equal("web-msg-1", results[0].WebUser);
+        Assert.Equal("web-msg-2", results[1].WebUser);
+        Assert.All(results, r => Assert.Equal("grpc-root", r.GrpcUser));
+        Assert.All(results, r => Assert.Equal("root-user", r.DefaultUser));
+
+        Assert.Equal("web-root", accessor.GetContext<UserContext>("web-api")?.UserId);
+    }
+
+    [Fact]
+    public void ClearContext_InFullLifecycle_WorksWithSetAndCapture()
+    {
+        using var provider = CreateProvider();
+        var writer = provider.GetRequiredService<IContextWriter>();
+        var accessor = provider.GetRequiredService<IContextAccessor>();
+
+        writer.SetContext(new UserContext("step1"));
+        writer.SetContext(new TenantContext("tenant1"));
+        var snapshot = accessor.CaptureSnapshot();
+
+        writer.ClearContext<UserContext>();
+        Assert.Null(accessor.GetContext<UserContext>());
+        Assert.Equal("tenant1", accessor.GetContext<TenantContext>()?.TenantId);
+
+        Assert.Equal("step1", snapshot.GetContext<UserContext>()?.UserId);
+
+        using (snapshot.BeginScope())
+        {
+            Assert.Equal("step1", accessor.GetContext<UserContext>()?.UserId);
+            Assert.Equal("tenant1", accessor.GetContext<TenantContext>()?.TenantId);
+        }
+
+        Assert.Null(accessor.GetContext<UserContext>());
+        Assert.Equal("tenant1", accessor.GetContext<TenantContext>()?.TenantId);
+    }
+
+    [Fact]
+    public async Task ClearContext_InConcurrentFlows_DoesNotAffectChildTasks()
+    {
+        using var provider = CreateProvider();
+        var writer = provider.GetRequiredService<IContextWriter>();
+        var accessor = provider.GetRequiredService<IContextAccessor>();
+
+        writer.SetContext(new UserContext("initial"));
+
+        var barrier = new TaskCompletionSource();
+        var childReady = new TaskCompletionSource();
+
+        var childTask = Task.Run(async () =>
+        {
+            var before = accessor.GetContext<UserContext>()?.UserId;
+            childReady.SetResult();
+            await barrier.Task;
+            var after = accessor.GetContext<UserContext>()?.UserId;
+            return (before, after);
+        });
+
+        await childReady.Task;
+
+        writer.ClearContext<UserContext>();
+        barrier.SetResult();
+
+        var (before, after) = await childTask;
+
+        Assert.Equal("initial", before);
+        Assert.Equal("initial", after);
+        Assert.Null(accessor.GetContext<UserContext>());
     }
 
     private static ServiceProvider CreateProvider()

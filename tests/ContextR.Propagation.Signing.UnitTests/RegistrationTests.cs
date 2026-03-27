@@ -10,7 +10,7 @@ public sealed class RegistrationTests
     [Fact]
     public void UseContextSigning_NullBuilder_Throws()
     {
-        IContextRegistrationBuilder<TestContext>? builder = null;
+        IContextTypeBuilder<TestContext>? builder = null;
         Assert.Throws<ArgumentNullException>(() =>
             builder!.UseContextSigning<TestContext>(o => o.Key = new byte[32]));
     }

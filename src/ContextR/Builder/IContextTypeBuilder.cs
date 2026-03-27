@@ -8,7 +8,7 @@ namespace ContextR;
 /// (e.g., <c>.UseAspNetCore()</c>, <c>.UseGlobalHttpPropagation()</c>, <c>.MapProperty()</c>).
 /// </summary>
 /// <typeparam name="TContext">The context type being configured.</typeparam>
-public interface IContextRegistrationBuilder<TContext> where TContext : class
+public interface IContextTypeBuilder<TContext> where TContext : class
 {
     /// <summary>
     /// Gets the service collection for registering transport-specific services.
@@ -20,5 +20,4 @@ public interface IContextRegistrationBuilder<TContext> where TContext : class
     /// or <see langword="null"/> for the default (domainless) registration.
     /// </summary>
     string? Domain { get; }
-
 }

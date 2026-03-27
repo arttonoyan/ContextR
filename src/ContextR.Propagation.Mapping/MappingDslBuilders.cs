@@ -33,12 +33,12 @@ internal interface IMapPendingProperty
 public sealed class ContextMapBuilder<TContext>
     where TContext : class
 {
-    private readonly IContextRegistrationBuilder<TContext> _registrationBuilder;
+    private readonly IContextTypeBuilder<TContext> _registrationBuilder;
     private ContextOversizeBehavior? _defaultOversizeBehavior;
     private bool _applyConventionByDefault;
     private IMapPendingProperty? _pendingProperty;
 
-    internal ContextMapBuilder(IContextRegistrationBuilder<TContext> registrationBuilder)
+    internal ContextMapBuilder(IContextTypeBuilder<TContext> registrationBuilder)
     {
         _registrationBuilder = registrationBuilder;
     }

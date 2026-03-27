@@ -7,7 +7,7 @@ namespace ContextR.Propagation.Mapping;
 
 /// <summary>
 /// Extension methods for configuring property-based context propagation
-/// on <see cref="IContextRegistrationBuilder{TContext}"/>.
+/// on <see cref="IContextTypeBuilder{TContext}"/>.
 /// </summary>
 public static class ContextRPropagationExtensions
 {
@@ -16,8 +16,8 @@ public static class ContextRPropagationExtensions
     /// Non-nullable properties are treated as required, nullable properties as optional.
     /// This behavior is enabled by default. Explicit <c>Required()</c>/<c>Optional()</c> calls always take precedence.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> UseNullabilityConventions<TContext>(
-        this IContextRegistrationBuilder<TContext> builder)
+    public static IContextTypeBuilder<TContext> UseNullabilityConventions<TContext>(
+        this IContextTypeBuilder<TContext> builder)
         where TContext : class
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -31,8 +31,8 @@ public static class ContextRPropagationExtensions
     /// Disables nullability-based requirement conventions for mapped properties.
     /// When disabled, inferred requirement defaults to optional unless explicitly configured.
     /// </summary>
-    public static IContextRegistrationBuilder<TContext> DisableNullabilityConventions<TContext>(
-        this IContextRegistrationBuilder<TContext> builder)
+    public static IContextTypeBuilder<TContext> DisableNullabilityConventions<TContext>(
+        this IContextTypeBuilder<TContext> builder)
         where TContext : class
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -49,8 +49,8 @@ public static class ContextRPropagationExtensions
     /// <param name="builder">The context registration builder.</param>
     /// <param name="configure">Mapping configuration callback.</param>
     /// <returns>The same builder for fluent chaining.</returns>
-    public static IContextRegistrationBuilder<TContext> Map<TContext>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> Map<TContext>(
+        this IContextTypeBuilder<TContext> builder,
         Action<ContextMapBuilder<TContext>> configure)
         where TContext : class
     {
@@ -81,8 +81,8 @@ public static class ContextRPropagationExtensions
     /// <param name="key">The transport key name (e.g., <c>"X-Tenant-Id"</c>).</param>
     /// <param name="oversizeBehaviorOverride">Optional oversize behavior override for this property.</param>
     /// <returns>The same builder for fluent chaining.</returns>
-    public static IContextRegistrationBuilder<TContext> MapProperty<TContext, TProperty>(
-        this IContextRegistrationBuilder<TContext> builder,
+    public static IContextTypeBuilder<TContext> MapProperty<TContext, TProperty>(
+        this IContextTypeBuilder<TContext> builder,
         Expression<Func<TContext, TProperty>> property,
         string key,
         ContextOversizeBehavior? oversizeBehaviorOverride = null)

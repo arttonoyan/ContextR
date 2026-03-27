@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace ContextR.Transport.Http;
 
 /// <summary>
-/// Extension methods for configuring HTTP context propagation on <see cref="IContextRegistrationBuilder{TContext}"/>.
+/// Extension methods for configuring HTTP context propagation on <see cref="IContextTypeBuilder{TContext}"/>.
 /// </summary>
 public static class ContextRHttpRegistrationExtensions
 {
@@ -24,8 +24,8 @@ public static class ContextRHttpRegistrationExtensions
     /// <typeparam name="TContext">The context type to propagate.</typeparam>
     /// <param name="builder">The context registration builder.</param>
     /// <returns>The same builder for fluent chaining.</returns>
-    public static IContextRegistrationBuilder<TContext> UseGlobalHttpPropagation<TContext>(
-        this IContextRegistrationBuilder<TContext> builder)
+    public static IContextTypeBuilder<TContext> UseGlobalHttpPropagation<TContext>(
+        this IContextTypeBuilder<TContext> builder)
         where TContext : class
     {
         var domain = builder.Domain;

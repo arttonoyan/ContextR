@@ -2,7 +2,7 @@ using ContextR.Resolution.Internal;
 
 namespace ContextR.Resolution;
 
-internal sealed class ResolutionBuilder<TContext>(IContextRegistrationBuilder<TContext> builder)
+internal sealed class ResolutionBuilder<TContext>(IContextTypeBuilder<TContext> builder)
     : IResolutionBuilder<TContext>
     where TContext : class
 {

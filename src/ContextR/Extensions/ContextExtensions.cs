@@ -101,4 +101,57 @@ public static class ContextExtensions
     /// </param>
     public static void SetContext<TContext>(this IContextWriter writer, string domain, TContext? context) where TContext : class
         => writer.SetContext(domain, typeof(TContext), context);
+
+    /// <summary>
+    /// Clears the ambient context value of type <typeparamref name="TContext"/>.
+    /// </summary>
+    /// <typeparam name="TContext">The context type to clear.</typeparam>
+    /// <param name="writer">The context writer.</param>
+    public static void ClearContext<TContext>(this IContextWriter writer) where TContext : class
+        => writer.ClearContext(typeof(TContext));
+
+    /// <summary>
+    /// Clears the ambient context value of type <typeparamref name="TContext"/> for the specified domain.
+    /// </summary>
+    /// <typeparam name="TContext">The context type to clear.</typeparam>
+    /// <param name="writer">The context writer.</param>
+    /// <param name="domain">The domain to clear from.</param>
+    public static void ClearContext<TContext>(this IContextWriter writer, string domain) where TContext : class
+        => writer.ClearContext(domain, typeof(TContext));
+
+    /// <summary>
+    /// Creates a snapshot containing only the provided context value and immediately activates it,
+    /// returning a disposable boundary that restores the previous ambient state when disposed.
+    /// </summary>
+    /// <typeparam name="TContext">The context type.</typeparam>
+    /// <param name="accessor">The context accessor.</param>
+    /// <param name="context">The context value to activate in the scope.</param>
+    /// <returns>A scope object that restores the previous context state on dispose.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="context"/> is <see langword="null"/>.
+    /// </exception>
+    public static IDisposable BeginScope<TContext>(this IContextAccessor accessor, TContext context) where TContext : class
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return accessor.CreateSnapshot(typeof(TContext), context).BeginScope();
+    }
+
+    /// <summary>
+    /// Creates a snapshot containing only the provided context value for the specified domain
+    /// and immediately activates it, returning a disposable boundary that restores the previous
+    /// ambient state when disposed.
+    /// </summary>
+    /// <typeparam name="TContext">The context type.</typeparam>
+    /// <param name="accessor">The context accessor.</param>
+    /// <param name="domain">The domain to associate the context value with.</param>
+    /// <param name="context">The context value to activate in the scope.</param>
+    /// <returns>A scope object that restores the previous context state on dispose.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="context"/> is <see langword="null"/>.
+    /// </exception>
+    public static IDisposable BeginScope<TContext>(this IContextAccessor accessor, string domain, TContext context) where TContext : class
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return accessor.CreateSnapshot(domain, typeof(TContext), context).BeginScope();
+    }
 }

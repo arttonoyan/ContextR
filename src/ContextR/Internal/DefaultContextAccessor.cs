@@ -23,7 +23,7 @@ internal sealed class DefaultContextAccessor : IContextAccessor, IContextWriter
         return Storage.Get(domain, contextType);
     }
 
-    public IContextSnapshot CreateSnapshot()
+    public IContextSnapshot CaptureSnapshot()
     {
         return new ContextSnapshot(CaptureCurrentValues(), GetDefaultDomain());
     }
@@ -58,6 +58,16 @@ internal sealed class DefaultContextAccessor : IContextAccessor, IContextWriter
     public void SetContext(string domain, Type contextType, object? context)
     {
         Storage.Set(domain, contextType, context);
+    }
+
+    public void ClearContext(Type contextType)
+    {
+        Storage.Set(GetDefaultDomain(), contextType, null);
+    }
+
+    public void ClearContext(string domain, Type contextType)
+    {
+        Storage.Set(domain, contextType, null);
     }
 
     private string? GetDefaultDomain() => _domainSelector?.Invoke(_serviceProvider);

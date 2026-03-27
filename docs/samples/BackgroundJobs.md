@@ -14,7 +14,7 @@ You need tenant/correlation/user context during job execution without relying on
 ## Enqueue side
 
 ```csharp
-var snapshot = accessor.CreateSnapshot();
+var snapshot = accessor.CaptureSnapshot();
 await queue.EnqueueAsync(new ProcessInvoiceCommand(invoiceId, snapshot));
 ```
 

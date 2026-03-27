@@ -18,12 +18,12 @@ internal sealed class ContextBuilder : IContextBuilder
 
     internal ContextDomainPolicy DomainPolicy { get; } = new();
 
-    public IContextBuilder Add<TContext>(Action<IContextRegistrationBuilder<TContext>>? configure = null)
+    public IContextBuilder Add<TContext>(Action<IContextTypeBuilder<TContext>>? configure = null)
         where TContext : class
     {
         _registeredTypes.Add(typeof(TContext));
         _hasDefaultRegistrations = true;
-        var regBuilder = new ContextRegistrationBuilder<TContext>(Services, domain: null);
+        var regBuilder = new ContextTypeBuilder<TContext>(Services, domain: null);
         configure?.Invoke(regBuilder);
         return this;
     }

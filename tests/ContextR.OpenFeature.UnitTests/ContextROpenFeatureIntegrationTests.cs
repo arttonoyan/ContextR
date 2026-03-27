@@ -361,7 +361,7 @@ public sealed class ContextROpenFeatureIntegrationTests
 
         using var provider = services.BuildServiceProvider();
         var accessor = provider.GetRequiredService<IContextAccessor>();
-        var snapshot = accessor.CreateSnapshot();
+        var snapshot = accessor.CaptureSnapshot();
 
         Assert.Throws<InvalidOperationException>(() => accessor.GetRequiredContext<UserContext>());
         Assert.Throws<InvalidOperationException>(() => accessor.GetRequiredContext<UserContext>("missing-domain"));
@@ -388,7 +388,7 @@ public sealed class ContextROpenFeatureIntegrationTests
         writer.SetContext(new TenantContext("root-tenant"));
         writer.SetContext("tenant-a", new UserContext("domain-root", "d@acme.dev", "dr"));
 
-        var fullSnapshot = accessor.CreateSnapshot();
+        var fullSnapshot = accessor.CaptureSnapshot();
         var defaultSnapshot = accessor.CreateSnapshot(new UserContext("default-snap", "s@acme.dev", "ss"));
         var domainSnapshot = accessor.CreateSnapshot("tenant-a", new UserContext("domain-snap", "ds@acme.dev", "dss"));
 
@@ -418,7 +418,7 @@ public sealed class ContextROpenFeatureIntegrationTests
         IContextAccessor? accessor = null;
         var user = new UserContext("u", "u@acme.dev", "s");
 
-        Assert.Throws<NullReferenceException>(() => accessor!.CreateSnapshot());
+        Assert.Throws<NullReferenceException>(() => accessor!.CaptureSnapshot());
         Assert.Throws<NullReferenceException>(() => accessor!.CreateSnapshot(user));
         Assert.Throws<NullReferenceException>(() => accessor!.CreateSnapshot("d", user));
     }

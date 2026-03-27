@@ -7,7 +7,7 @@ namespace ContextR.Transport.Grpc;
 
 /// <summary>
 /// Extension methods for configuring gRPC context propagation
-/// on <see cref="IContextRegistrationBuilder{TContext}"/>.
+/// on <see cref="IContextTypeBuilder{TContext}"/>.
 /// </summary>
 public static class ContextRGrpcRegistrationExtensions
 {
@@ -22,8 +22,8 @@ public static class ContextRGrpcRegistrationExtensions
     /// <typeparam name="TContext">The context type to propagate.</typeparam>
     /// <param name="builder">The context registration builder.</param>
     /// <returns>The same builder for fluent chaining.</returns>
-    public static IContextRegistrationBuilder<TContext> UseGlobalGrpcPropagation<TContext>(
-        this IContextRegistrationBuilder<TContext> builder)
+    public static IContextTypeBuilder<TContext> UseGlobalGrpcPropagation<TContext>(
+        this IContextTypeBuilder<TContext> builder)
         where TContext : class
     {
         var domain = builder.Domain;
